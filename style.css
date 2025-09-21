@@ -1,0 +1,350 @@
+/* Global Styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* Hero/Banner Section */
+.image-banner {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-fullscreen {
+  height: 100vh;
+}
+
+.hero-small {
+  height: 20vh;
+}
+
+/* Text overlay */
+.text-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 60px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-align: center;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+  max-width: 80%;
+  line-height: 1.3;
+}
+
+.hero-small .text-overlay {
+  font-size: 48px;
+  font-weight: 700;
+  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+/* Navigation Bar */
+nav {
+  background: #444;
+  color: white;
+  padding: 10px 0;
+  text-align: center;
+}
+
+nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav ul li {
+  display: inline;
+  margin: 0 15px;
+}
+
+nav ul li a {
+  color: white;
+  text-decoration: none;
+}
+
+/* Main Content */
+main {
+  padding: 20px;
+  max-width: 800px;
+  margin: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+main h2 {
+  color: #0073e6;
+}
+
+/* Sections */
+.section {
+  margin: 40px auto;
+  padding: 20px;
+  max-width: 800px;
+}
+
+.section-title {
+  font-size: 2em;
+  text-align: center;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.section p,
+.section ul {
+  text-align: justify;
+}
+
+/* Footer */
+footer {
+  background: #444;
+  color: white;
+  padding: 10px 0;
+  text-align: center;
+}
+
+footer p {
+  margin: 0;
+}
+
+/* Team Layout */
+.country-header {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 40px;
+}
+
+.flag {
+  height: 30px;
+  width: auto;
+  object-fit: contain;
+}
+
+
+/* Two-column grid for team */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 25px;
+  margin-top: 20px;
+}
+
+.team-member {
+  display: flex;
+  align-items: flex-start;
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.profile-pic {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-right: 15px;
+}
+
+.team-member-content {
+  flex: 1;
+}
+
+.team-member-content h4 {
+  margin: 0;
+  font-weight: bold;
+}
+
+.team-member-content p {
+  margin: 5px 0;
+}
+
+.university-logo {
+  height: 35px;
+  width: auto;
+  max-width: 100px;
+  object-fit: contain;
+  display: block;
+  margin-top: 10px;
+}
+main, .section {
+  margin-top: 20px;
+}
+/* Links */
+a {
+  color: #0073e6;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #005bb5;
+}
+
+/* Lists */
+ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  font-size: 1em;
+}
+
+ul li {
+  margin-bottom: 10px;
+}
+
+/* Education section (if used) */
+.education-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 800px;
+}
+
+.education-list li {
+  margin-bottom: 20px;
+}
+
+.education-list strong {
+  font-size: 1.1em;
+  color: #333;
+}
+
+.education-list em {
+  color: #555;
+  display: block;
+  font-style: italic;
+}
+
+/* Responsive styles */
+@media screen and (max-width: 768px) {
+  .text-overlay {
+    font-size: 22px;
+    max-width: 90%;
+    padding: 0 10px;
+  }
+
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-member {
+    flex-direction: row;
+  }
+}
+
+.presentations {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.talk {
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.talk > summary {
+  list-style: none;             /* hide default arrow */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.talk[open] > summary {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.talk-title {
+  flex: 1;
+}
+
+.talk .drop {
+  border: 1px solid #d0d0d0;
+  background: #f8f8f8;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.talk-body {
+  padding: 0.9rem 1rem 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.talk .speaker,
+.talk .meta {
+  font-size: 0.95rem;
+  color: #444;
+}
+
+.talk > summary::after {
+  content: "▸";
+  margin-left: 0.5rem;
+  transition: transform 0.2s ease;
+}
+.talk[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.abstract {
+  text-align: justify;
+  line-height: 1.5;      /* more readable */
+  margin-top: 0.5rem;    /* space above */
+}
+
+
+/* section headings */
+.section-header {
+  margin: 2.5rem 0 1rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+.section-header h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.6rem;
+}
+.section-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+/* each month’s gallery */
+.gallery-month {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* every picture fills the section width */
+.gallery-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px; /* optional */
+}
+
+.gallery-item figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  color: #444;
+}
+.gallery-item h3 {
+  margin: 0 0 0.3rem;
+}

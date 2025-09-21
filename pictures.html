@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="nav-placeholder"></div>
+
+<div class="image-banner hero-small" style="background-image: url('images/BuenaVista.jpg');">
+  <div class="text-overlay">Pictures</div>
+</div>
+
+
+<!-- Content -->
+<!-- Picture Gallery -->
+<main>
+
+<section id="gallery" class="section">
+
+  <!-- ===== June 2025 ===== -->
+  <header class="section-header" id="jun-2025">
+    <h2>UNESCO-IHP Drought Symposium and the Science for Water Security workshop, June 2025</h2>
+  </header>
+
+  <div class="gallery-month">
+    <figure class="gallery-item">
+      <img src="images/pictures/Ann_UNESCO.jpg" alt="Paris rooftop">
+      <figcaption>
+        <h3>Ann van Griensven as key panelist of the 50 year celebration of the UNESCO's Intergovernmental Hydrological Programme (IHP)</h3>
+      </figcaption>
+    </figure>
+
+  </div>
+
+  <div class="gallery-month">
+    <figure class="gallery-item">
+      <img src="images/pictures/AXA.jpg" alt="Paris rooftop">
+      <figcaption>
+        <h3>DIGIWATER team visiting AXA's facilities</h3>
+      </figcaption>
+    </figure>
+
+  </div>
+  <div class="gallery-month">
+    <figure class="gallery-item">
+      <img src="images/pictures/Paul_UNESCO.JPG" alt="Paris rooftop">
+      <figcaption>
+        <h3>Paul presenting in UNESCO IHP's session on AI for Water Resources Management</h3>
+      </figcaption>
+    </figure>
+
+  </div>
+
+  <div class="gallery-month">
+    <figure class="gallery-item">
+      <img src="images/pictures/Paris_rooftop.JPG" alt="Paris rooftop">
+      <figcaption>
+        <h3>DIGIWATER team enjoying Paris from a rooftop</h3>
+      </figcaption>
+    </figure>
+
+  </div>
+
+
+</section>
+
+
+
+
+
+
+</main>
+    <!-- Footer will be inserted here -->
+    <div id="footer-placeholder"></div>
+
+
+
+<!-- Components auto-loaded -->
+<script>
+async function loadComponents() {
+    const res = await fetch('components.html');
+    const text = await res.text();
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+
+    const logoBar = tempDiv.querySelector('#logo-bar');
+    if (logoBar) {
+    document.body.insertBefore(logoBar, document.body.firstChild);
+    }
+
+    const nav = tempDiv.querySelector('#shared-nav');
+    if (nav) {
+    const main = document.querySelector('main');
+    document.body.insertBefore(nav, main || document.body.firstChild);
+    }
+
+    const footer = tempDiv.querySelector('#shared-footer');
+    if (footer) {
+    document.body.appendChild(footer);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', loadComponents);
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="nav-placeholder"></div>
+    
+<div class="image-banner hero-small" style="background-image: url('images/BuenaVista.jpg');">
+  <div class="text-overlay">Outcomes</div>
+</div>
+
+
+
+    <!-- Content -->
+    <main>
+
+    
+    <section>
+        <h2>SWAT+ course material</h2>
+        <iframe 
+        src="resources/SWAT_course.pdf#page=1&zoom=50" 
+        width="100%" 
+        height="600px" 
+        style="border: none;">
+        Your browser does not support PDFs. 
+        <a href="resources/CubaPlan20-24Oct.pdf" target="_blank">Download the PDF</a>.
+        </iframe>
+
+
+    </section>
+
+
+
+        
+    </main>
+    <!-- Footer will be inserted here -->
+    <div id="footer-placeholder"></div>
+
+
+
+
+
+<!-- Components auto-loaded -->
+<script>
+async function loadComponents() {
+    const res = await fetch('components.html');
+    const text = await res.text();
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+
+    const logoBar = tempDiv.querySelector('#logo-bar');
+    if (logoBar) {
+    document.body.insertBefore(logoBar, document.body.firstChild);
+    }
+
+    const nav = tempDiv.querySelector('#shared-nav');
+    if (nav) {
+    const main = document.querySelector('main');
+    document.body.insertBefore(nav, main || document.body.firstChild);
+    }
+
+    const footer = tempDiv.querySelector('#shared-footer');
+    if (footer) {
+    document.body.appendChild(footer);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', loadComponents);
+</script>
+</body>
+</html>

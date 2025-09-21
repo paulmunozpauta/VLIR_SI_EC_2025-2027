@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIGIWATER</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- Navigation will be inserted here -->
+<div id="nav-placeholder"></div>
+
+
+<div class="image-banner hero-fullscreen" style="background-image: url('images/BuenaVista.jpg');">
+  <div class="text-overlay">DIGIWATER: Building Resilient Water Futures </div>
+</div>
+
+
+<section class="section">
+  <h2 class="section-title">About DIGIWATER</h2>
+  <p style="text-align: justify;">
+    In March 2025, a meeting at the Vrije Universiteit Brussel (VUB) with the coordinators of the Strategic Institutional Partnerships (SIP) with the University of the Western Cape (UWC, South Africa) and Universidad Central de Las Villas (UCLV, Cuba), together with the rector of UCLV, identified a shared interest in strengthening interdisciplinary collaborations on water challenges. 
+    Supported by VLIR-UOS Global Minds through XREI and SGP funds, DIGIWATER was created to respond to this vision, using the International Scientific Symposium CCI2025, hosted by UCLV in October 2025, as a launchpad for joint action.
+  </p>
+  <p style="text-align: justify;">
+    DIGIWATER expands the SIP framework and connects VUB to four additional strategic partners—Universidad de Cuenca (UCUENCA, Ecuador), Universidad Católica Boliviana (UCB), Universidad de Concepción (UdeC, Chile) and Pontificia Universidad Católica del Perú (PUCP)—through two interdisciplinary workshops:
+  </p>
+  <ul style="text-align: justify;">
+    <li><strong>Water Resilience through Citizen Science</strong>, focused on inclusive governance and water justice</li>
+    <li><strong>Water Resilience through Digitisation</strong>, exploring IoT, AI, and data tools for water applications</li>
+  </ul>
+  <p style="text-align: justify;">
+    In addition, two training courses targeting Cuban early career scientists and staff will focus on SWAT modelling and Digitisation and AI for water applications. These activities promote knowledge exchange, research decolonisation, and collaborative research to build resilient water futures in the Global South through digital tools and citizen engagement—key priorities in the VLIR-UOS country reference frameworks for Cuba, Bolivia, Ecuador, and Peru.
+  </p>
+  <p style="text-align: justify;">
+    DIGIWATER also aligns with the UNESCO Intergovernmental Hydrological Programme (IHP) and the Chair on Open Water Science and Education, hosted at VUB and chaired by Prof. Ann Van Griensven, which promotes open science through open data, IoT, and online education.
+  </p>
+</section>
+
+
+
+<!-- Footer will be inserted here -->
+<div id="footer-placeholder"></div>
+
+<script>
+  async function loadComponents() {
+    const res = await fetch('components.html');
+    const text = await res.text();
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+
+    // Insert logo bar at the top of the body
+    document.body.insertBefore(tempDiv.querySelector('#logo-bar'), document.body.firstChild);
+
+    // Insert nav bar right after logo bar
+    const logoBar = document.querySelector('#logo-bar');
+    document.body.insertBefore(tempDiv.querySelector('#shared-nav'), logoBar.nextSibling);
+
+    // Append footer at the end of the body
+    document.body.appendChild(tempDiv.querySelector('#shared-footer'));
+  }
+
+  window.addEventListener('DOMContentLoaded', loadComponents);
+</script>
+
+
+</body>
+</html>

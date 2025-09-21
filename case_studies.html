@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="nav-placeholder"></div>
+    
+<div class="image-banner hero-small" style="background-image: url('images/BuenaVista.jpg');">
+  <div class="text-overlay">Case studies</div>
+</div>
+
+
+
+    <!-- Content -->
+    <main>
+
+<!-- Content -->
+<main>
+  <section class="section">
+
+    <!-- Urban Case Study -->
+    <div class="case-study" style="margin-bottom: 50px;">
+      <h3>Urban Case Study</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+        <!-- Placeholder for Image -->
+        <div style="flex: 1 1 300px;">
+          <img src="images/case_studies/urban_placeholder.jpg" alt="Urban Case Study" style="width: 100%; border-radius: 8px;">
+        </div>
+        <!-- Description -->
+        <div style="flex: 2 1 400px; text-align: justify;">
+          <p>
+            The urban case study will focus on a vulnerable neighborhood in a yet-to-be-selected Andean city. It aims to address the growing challenges of flooding, heat stress, and rising water demand. With support from ETAPA and local authorities, the project will deploy low-cost climate sensors, engage communities, and develop participatory adaptation strategies.
+          </p>
+          <p>
+            A dashboard will be made public to monitor urban hydroclimatic indicators in real time. The final location will be selected based on vulnerability, representativeness, and stakeholder interest.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rural Case Study -->
+    <div class="case-study" style="margin-bottom: 50px;">
+      <h3>Rural Case Study</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+        <!-- Placeholder for Image -->
+        <div style="flex: 1 1 300px;">
+          <img src="images/case_studies/rural_placeholder.jpg" alt="Rural Case Study" style="width: 100%; border-radius: 8px;">
+        </div>
+        <!-- Description -->
+        <div style="flex: 2 1 400px; text-align: justify;">
+          <p>
+            The rural case study will take place in an irrigation system in the Azuay province. The exact site is being selected based on its vulnerability to drought and water management needs. Working with the Provincial Irrigation Direction, the project will install water monitoring tools, assess climate stress, and co-develop adaptation strategies using the UNESCO-CRIDA methodology.
+          </p>
+          <p>
+            The goal is to create scalable solutions that strengthen rural water governance and improve the resilience of farming communities dependent on irrigation.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+        
+    </main>
+    <!-- Footer will be inserted here -->
+    <div id="footer-placeholder"></div>
+
+
+
+
+
+<!-- Components auto-loaded -->
+<script>
+async function loadComponents() {
+    const res = await fetch('components.html');
+    const text = await res.text();
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+
+    const logoBar = tempDiv.querySelector('#logo-bar');
+    if (logoBar) {
+    document.body.insertBefore(logoBar, document.body.firstChild);
+    }
+
+    const nav = tempDiv.querySelector('#shared-nav');
+    if (nav) {
+    const main = document.querySelector('main');
+    document.body.insertBefore(nav, main || document.body.firstChild);
+    }
+
+    const footer = tempDiv.querySelector('#shared-footer');
+    if (footer) {
+    document.body.appendChild(footer);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', loadComponents);
+</script>
+</body>
+</html>

@@ -133,20 +133,23 @@ footer p {
 }
 
 
+
 /* Two-column grid for team */
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 25px;
-  margin-top: 20px;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns per row */
+  gap: 30px;
+  margin-bottom: 40px; /* spacing between rows of grids */
 }
 
+/* Individual team member box */
 .team-member {
   display: flex;
   align-items: flex-start;
   background-color: #f9f9f9;
   padding: 15px;
   border-radius: 8px;
+  gap: 15px; /* spacing between image and content */
 }
 
 .profile-pic {

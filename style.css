@@ -351,3 +351,17 @@ ul li {
 .gallery-item h3 {
   margin: 0 0 0.3rem;
 }
+.aware-title {
+  max-width: 90%;
+  margin: 0 auto;
+  text-align: center;
+  font-size: clamp(24px, 5vw, 60px); /* Responsive text size */
+  line-height: 1.2;
+  padding: 0 15px;
+  white-space: normal; /* allow wrapping on smaller screens */
+}
+
+.aware-title .blue {
+  color: #0073e6;
+  font-weight: bold;
+}

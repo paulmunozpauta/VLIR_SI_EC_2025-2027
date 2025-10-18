@@ -33,7 +33,7 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   color: white;
-  font-size: 60px;
+  font-size: 30px;
   font-weight: 800;
   letter-spacing: 1px;
   text-align: center;
@@ -355,10 +355,10 @@ ul li {
   max-width: 90%;
   margin: 0 auto;
   text-align: center;
-  font-size: clamp(24px, 5vw, 60px); /* Responsive text size */
+  font-size: clamp(20px, 4vw, 45px); /* Reduced min, mid, and max sizes */
   line-height: 1.2;
   padding: 0 15px;
-  white-space: normal; /* allow wrapping on smaller screens */
+  white-space: normal;
 }
 
 .aware-title .blue {

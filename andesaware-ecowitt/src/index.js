@@ -55,16 +55,16 @@ export default {
       return { ts, data };
     };
 
-    // --- receiver (Ecowitt / WU compatible)
+
+    // --- receiver (Ecowitt + Weather Underground compatible)
     if (path === "/api/ecowitt" || path.startsWith("/api/ecowitt/")) {
       let params = {};
       if (request.method === "GET") {
         url.searchParams.forEach((v, k) => (params[k] = v));
       } else if (request.method === "POST") {
         const ct = (request.headers.get("content-type") || "").toLowerCase();
-        if (ct.includes("application/json")) {
-          params = await request.json().catch(() => ({}));
-        } else if (ct.includes("application/x-www-form-urlencoded")) {
+        if (ct.includes("application/json")) params = await request.json().catch(() => ({}));
+        else if (ct.includes("application/x-www-form-urlencoded")) {
           const body = new URLSearchParams(await request.text());
           body.forEach((v, k) => (params[k] = v));
         } else {
@@ -74,14 +74,18 @@ export default {
         return new Response("method not allowed", { status: 405, headers: cors });
       }
 
-      // optional passkey check
-      if (env.ECOWITT_PASSKEY && params.passkey !== env.ECOWITT_PASSKEY) {
-        return new Response("bad passkey", { status: 401, headers: cors });
+      // --- only enforce passkey if client sends it (Ecowitt devices)
+      if ("passkey" in params) {
+        if (env.ECOWITT_PASSKEY && params.passkey !== env.ECOWITT_PASSKEY) {
+          return new Response("bad passkey", { status: 401, headers: cors });
+        }
       }
 
+      // save raw params
       await save(params);
       return new Response("OK", { headers: cors });
     }
+        
 
     // --- latest (SI)
     if (path === "/api/latest") {
@@ -281,56 +285,74 @@ function dewpointC(tC, rh) {
   return (b * gamma) / (a - gamma);
 }
 
-// Ecowitt/WU → SI mapping, tolerant to different field names
+// Ecowitt + Weather Underground → SI (C, m/s, hPa, mm)
 function toSI(d) {
-  // outdoor
-  const tOutF = num(pick(d, "tempf", "outtempf"));
-  const rhOut = num(pick(d, "humidity", "outhumidity"));
-  const feelsOutF = num(pick(d, "feelslikef", "heatindexf", "windchillf"));
-  const dewOutF = num(pick(d, "dewpointf"));
+  const norm = (obj) => Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [k.toLowerCase(), v])
+  );
+  const u = norm(d); // normalized lowercase copy
 
-  const tOutC = tOutF != null ? (tOutF - 32) * 5 / 9 : null;
-  const feelsOutC = feelsOutF != null ? (feelsOutF - 32) * 5 / 9 : null;
-  const dewOutC = dewOutF != null ? (dewOutF - 32) * 5 / 9 : dewpointC(tOutC, rhOut);
+  const num = (v) => (v == null || v === "" ? null : Number(v));
+  const pick = (o, ...keys) => { for (const k of keys) if (o[k] != null) return o[k]; return null; };
 
-  // indoor
-  const tInF = num(pick(d, "indoortempf", "tempinf"));
-  const rhIn = num(pick(d, "indoorhumidity", "humidityin"));
-  const tInC = tInF != null ? (tInF - 32) * 5 / 9 : null;
+  // --- temperature (°F → °C)
+  const tOutF = num(pick(u, "tempf", "outtempf", "temperature")); 
+  const tOutC = tOutF != null ? (tOutF - 32) * 5/9 : null;
 
-  // solar & uv
-  const solarWm2 = num(pick(d, "solarradiation"));
-  const uv = num(pick(d, "uv"));
+  const rhOut = num(pick(u, "humidity", "outhumidity"));
 
-  // rain (in → mm), rate (in/hr → mm/hr)
+  const feelsOutF = num(pick(u, "feelslikef", "heatindexf", "windchillf"));
+  const feelsOutC = feelsOutF != null ? (feelsOutF - 32) * 5/9 : null;
+
+  const dewOutF = num(pick(u, "dewpointf"));
+  const dewpointC = (t, rh) => {
+    if (t == null || rh == null) return null;
+    const a = 17.62, b = 243.12;
+    const g = (a * t) / (b + t) + Math.log(rh / 100);
+    return (b * g) / (a - g);
+  };
+  const dewOutC = dewOutF != null ? (dewOutF - 32) * 5/9 : dewpointC(tOutC, rhOut);
+
+  // --- indoor (same logic)
+  const tInF = num(pick(u, "indoortempf", "tempinf"));
+  const tInC = tInF != null ? (tInF - 32) * 5/9 : null;
+  const rhIn = num(pick(u, "indoorhumidity", "humidityin"));
+
+  // --- solar / uv
+  const solar = num(pick(u, "solarradiation", "solar"));
+  const uv = num(pick(u, "uv"));
+
+  // --- rain (in → mm)
   const in2mm = (x) => (x == null ? null : Number(x) * 25.4);
-  const rate2mm = (x) => (x == null ? null : Number(x) * 25.4);
-  const rainRate   = rate2mm(pick(d, "rainratein"));
-  const rainHourly = in2mm(pick(d, "hourlyrainin"));
-  const rainDaily  = in2mm(pick(d, "dailyrainin"));
-  const rainEvent  = in2mm(pick(d, "eventrainin"));
-  const rain24h    = in2mm(pick(d, "24hourrainin", "rain24h_in", "rain24hin"));
-  const rainWeekly = in2mm(pick(d, "weeklyrainin"));
-  const rainMonthly= in2mm(pick(d, "monthlyrainin"));
-  const rainYearly = in2mm(pick(d, "yearlyrainin"));
+  const rainRate   = in2mm(pick(u, "rainratein"));   // Ecowitt
+  const rainWU     = in2mm(pick(u, "rainin"));       // WU incremental
+  const rainHourly = in2mm(pick(u, "hourlyrainin"));
+  const rainDaily  = in2mm(pick(u, "dailyrainin"));
+  const rainEvent  = in2mm(pick(u, "eventrainin"));
+  const rain24h    = in2mm(pick(u, "24hourrainin", "rain24hin"));
 
-  // wind (mph → m/s)
+  // if WU only sends incremental rain, estimate mm/hr
+  const rainRateFinal = rainRate != null ? rainRate :
+                        rainWU != null ? rainWU * 60 : null;
+
+  // --- wind (mph → m/s)
   const mph2ms = (x) => (x == null ? null : Number(x) * 0.44704);
-  const wind   = mph2ms(pick(d, "windspeedmph"));
-  const gust   = mph2ms(pick(d, "windgustmph"));
-  const dir    = num(pick(d, "winddir"));
-  const dir10m = num(pick(d, "winddir_avg10m", "windavgdir", "winddir10m"));
+  const wind = mph2ms(pick(u, "windspeedmph"));
+  const gust = mph2ms(pick(u, "windgustmph"));
+  const dir  = num(pick(u, "winddir"));
+  const dir10m = num(pick(u, "winddir_avg10m", "windavgdir", "winddir10m"));
 
-  // pressure — prefer hPa fields; else inHg → hPa
+  // --- pressure (inHg → hPa)
   const inHg2hPa = (x) => (x == null ? null : Number(x) * 33.8639);
-  const presRel  = num(pick(d, "baromrelhpa"));
-  const presAbs  = num(pick(d, "baromabshpa"));
-  const presRelHpa = presRel != null ? presRel : inHg2hPa(pick(d, "baromrelin"));
-  const presAbsHpa = presAbs != null ? presAbs : inHg2hPa(pick(d, "baromabsin"));
+  const presRel  = num(pick(u, "baromrelhpa"));
+  const presAbs  = num(pick(u, "baromabshpa"));
+  const presWU   = num(pick(u, "baromin"));        // WU
+  const presRelHpa = presRel != null ? presRel : inHg2hPa(presWU);
+  const presAbsHpa = presAbs != null ? presAbs : null;
 
-  // device
-  const heap    = num(pick(d, "heap"));
-  const runtime = num(pick(d, "runtime"));
+  // --- metadata
+  const stationID = pick(u, "id", "station");  // WU ID
+  const stationType = pick(u, "stationtype", "softwaretype");
 
   return {
     // outdoor
@@ -344,18 +366,15 @@ function toSI(d) {
     indoor_humidity_pct: rhIn,
 
     // solar & uv
-    solar_wm2: solarWm2,
+    solar_wm2: solar,
     uv_index: uv,
 
     // rain
-    rain_rate_mm_hr: rainRate,
+    rain_rate_mm_hr: rainRateFinal,
     rain_hourly_mm:  rainHourly,
     rain_daily_mm:   rainDaily,
     rain_event_mm:   rainEvent,
     rain_24h_mm:     rain24h,
-    rain_weekly_mm:  rainWeekly,
-    rain_monthly_mm: rainMonthly,
-    rain_yearly_mm:  rainYearly,
 
     // wind
     wind_speed_ms: wind,
@@ -367,12 +386,9 @@ function toSI(d) {
     pressure_rel_hpa: presRelHpa,
     pressure_abs_hpa: presAbsHpa,
 
-    // device
-    heap_bytes:  heap,
-    runtime_s:   runtime,
-
-    // marker
-    stationtype: d.stationtype ?? null
+    // metadata
+    station_id: stationID ?? null,
+    stationtype: stationType ?? null,
   };
 }
 

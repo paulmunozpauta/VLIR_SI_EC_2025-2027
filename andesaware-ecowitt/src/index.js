@@ -326,12 +326,17 @@ function toSI(d) {
 }
 
 // Append all rows to a GitHub CSV (simple appender; may duplicate lines if run often)
-async function appendToGitHubCSV(env) {
+async function appendToGitHubCSV(env, minutes = 60) {
+  const since = Date.now() - minutes * 60 * 1000;
+
   const rows = await env.DB
-    .prepare("SELECT ts, payload FROM samples ORDER BY ts ASC")
+    .prepare("SELECT ts, payload FROM samples WHERE ts >= ? ORDER BY ts ASC")
+    .bind(since)
     .all();
 
-  if (!rows.results.length) return;
+  if (!rows.results.length) {
+    return { ok: true, message: "no data in window", path: null };
+  }
 
   const samples = rows.results.map((r) => {
     const raw = JSON.parse(r.payload || "{}");
@@ -345,20 +350,16 @@ async function appendToGitHubCSV(env) {
     };
   });
 
-  // union keys
+  // union keys (stable header)
   const keys = Array.from(
-    samples.reduce((s, o) => {
-      Object.keys(o).forEach((k) => s.add(k));
-      return s;
-    }, new Set(["ts", "ts_local"]))
+    samples.reduce((s, o) => { Object.keys(o).forEach((k) => s.add(k)); return s; },
+                   new Set(["ts","ts_local"]))
   );
 
-  const esc = (v) =>
-    v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, ".");
-  const newLines = samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(","));
-  const newChunk = newLines.join("\n") + "\n";
+  const esc = (v) => (v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, "."));
+  const newChunk = samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(",")).join("\n") + "\n";
 
-  const repo = env.GH_REPO;                 // "owner/repo"
+  const repo   = env.GH_REPO;                 // "owner/repo"
   const branch = env.GH_BRANCH || "main";
   const filepath = "archives/ecowitt/ecowitt_history.csv";
   const api = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(filepath)}`;
@@ -368,7 +369,7 @@ async function appendToGitHubCSV(env) {
     "User-Agent": "andesaware-ecowitt-archiver",
   };
 
-  // get existing file (if any)
+  // get existing file (to append)
   const get = await fetch(`${api}?ref=${branch}`, { headers });
   let sha, oldContent = "";
   if (get.status === 200) {
@@ -378,7 +379,7 @@ async function appendToGitHubCSV(env) {
   }
 
   const contentB64 = btoa(unescape(encodeURIComponent(oldContent + newChunk)));
-  const body = { message: `update: ${filepath}`, content: contentB64, branch, ...(sha ? { sha } : {}) };
+  const body = { message: `append ${minutes}min`, content: contentB64, branch, ...(sha ? { sha } : {}) };
 
   const put = await fetch(api, { method: "PUT", headers, body: JSON.stringify(body) });
   if (!put.ok) {

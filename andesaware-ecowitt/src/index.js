@@ -49,76 +49,71 @@ export default {
     // --- save raw sample
     const save = async (data) => {
       const ts = Date.now();
-      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)")
-        .bind(ts, JSON.stringify(data))
-        .run();
+      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)").bind(ts, JSON.stringify(data)).run();
       return { ts, data };
     };
 
-    // --- WU classic endpoint alias (Weather Underground protocol)
-    if (path === "/weatherstation/updateweatherstation.php") {
-      // Parse GET/POST the same as our ecowitt route
-      let params = {};
-      if (request.method === "GET") {
-        url.searchParams.forEach((v, k) => (params[k] = v));
-      } else if (request.method === "POST") {
+    // ===== helpers =====
+    async function parseParams(request, url) {
+      // start with query params
+      const params = {};
+      url.searchParams.forEach((v, k) => (params[k] = v));
+
+      if (request.method === "POST") {
         const ct = (request.headers.get("content-type") || "").toLowerCase();
-        if (ct.includes("application/json")) params = await request.json().catch(() => ({}));
-        else if (ct.includes("application/x-www-form-urlencoded")) {
-          const body = new URLSearchParams(await request.text());
+        const rawText = await request.text();
+
+        if (!rawText) return params; // empty POST (some devices probe)
+
+        if (ct.includes("application/json")) {
+          try {
+            const j = JSON.parse(rawText);
+            Object.assign(params, j);
+          } catch { /* ignore */ }
+        } else if (ct.includes("application/x-www-form-urlencoded")) {
+          const body = new URLSearchParams(rawText);
           body.forEach((v, k) => (params[k] = v));
         } else {
-          return new Response("unsupported content-type", { status: 415, headers: cors });
+          // many WU/Ecowitt firmwares send text/plain key=value&key2=value2
+          if (rawText.includes("=")) {
+            const body = new URLSearchParams(rawText);
+            body.forEach((v, k) => (params[k] = v));
+          }
         }
-      } else {
-        return new Response("method not allowed", { status: 405, headers: cors });
       }
+      return params;
+    }
 
-      // Do NOT enforce passkey here (WU protocol doesn't send it)
-      // Save raw + processed for fast /api/latest
+    // --- WU classic endpoint alias (Weather Underground protocol)
+    if (path === "/weatherstation/updateweatherstation.php") {
+      const params = await parseParams(request, url);
+
+      // save raw + processed; add meta for debugging
       const processed = toSI(params);
-      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)")
-        .bind(Date.now(), JSON.stringify({ ...params, _processed: processed }))
-        .run();
+      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)").bind(
+        Date.now(),
+        JSON.stringify({ ...params, _processed: processed, __meta: { path, method: request.method, url: request.url } })
+      ).run();
 
-      // Many devices expect the exact string "success"
+      // many consoles expect "success"
       return new Response("success", { headers: cors });
     }
 
-
-
-
     // --- receiver (Ecowitt + Weather Underground compatible)
     if (path === "/api/ecowitt" || path.startsWith("/api/ecowitt/")) {
-      let params = {};
-      if (request.method === "GET") {
-        url.searchParams.forEach((v, k) => (params[k] = v));
-      } else if (request.method === "POST") {
-        const ct = (request.headers.get("content-type") || "").toLowerCase();
-        if (ct.includes("application/json")) params = await request.json().catch(() => ({}));
-        else if (ct.includes("application/x-www-form-urlencoded")) {
-          const body = new URLSearchParams(await request.text());
-          body.forEach((v, k) => (params[k] = v));
-        } else {
-          return new Response("unsupported content-type", { status: 415, headers: cors });
-        }
-      } else {
-        return new Response("method not allowed", { status: 405, headers: cors });
-      }
+      const params = await parseParams(request, url);
 
-      // --- only enforce passkey if client sends it (Ecowitt devices)
+      // enforce passkey only if device sends it (Ecowitt protocol)
       if ("passkey" in params) {
         if (env.ECOWITT_PASSKEY && params.passkey !== env.ECOWITT_PASSKEY) {
           return new Response("bad passkey", { status: 401, headers: cors });
         }
       }
 
-      // save raw params + processed SI data
       const processed = toSI(params);
-      await save({ ...params, _processed: processed });
+      await save({ ...params, _processed: processed, __meta: { path, method: request.method, url: request.url } });
       return new Response("OK", { headers: cors });
-        }
-      
+    }
 
     // --- latest (SI)
     if (path === "/api/latest") {
@@ -129,20 +124,12 @@ export default {
       let data = {};
       if (row) {
         const raw = JSON.parse(row.payload || "{}");
-        // If we have pre-processed SI data saved under _processed, use that.
-        // Otherwise run toSI() on the raw payload.
         data = raw._processed || toSI(raw);
       }
 
-      const out = row
-        ? { ts: row.ts, ts_local: fmt(row.ts), data }
-        : {};
-
-      return new Response(JSON.stringify(out), {
-        headers: { "content-type": "application/json", ...cors }
-      });
+      const out = row ? { ts: row.ts, ts_local: fmt(row.ts), data } : {};
+      return new Response(JSON.stringify(out), { headers: { "content-type": "application/json", ...cors } });
     }
-
 
     // --- /api/health : quick liveness + last sample time
     if (path === "/api/health") {
@@ -178,19 +165,14 @@ export default {
       });
     }
 
-    // --- latest raw (exact match so it isn't shadowed)
+    // --- latest raw
     if (path === "/api/latest_raw") {
       const row = await env.DB
         .prepare("SELECT ts, payload FROM samples ORDER BY id DESC LIMIT 1")
         .first();
 
-      const out = row
-        ? { ts: row.ts, ts_local: fmt(row.ts), payload: JSON.parse(row.payload || "{}") }
-        : {};
-
-      return new Response(JSON.stringify(out), {
-        headers: { "content-type": "application/json", ...cors }
-      });
+      const out = row ? { ts: row.ts, ts_local: fmt(row.ts), payload: JSON.parse(row.payload || "{}") } : {};
+      return new Response(JSON.stringify(out), { headers: { "content-type": "application/json", ...cors } });
     }
 
     // --- history (SI)  /api/history?hours=24
@@ -205,21 +187,14 @@ export default {
 
       const series = rows.results.map((r) => {
         const raw = JSON.parse(r.payload || "{}");
-        const data = raw._processed || toSI(raw);  // use cached processed values if available
-        return {
-          t: r.ts,
-          t_local: fmt(r.ts),
-          ...data
-        };
+        const data = raw._processed || toSI(raw);
+        return { t: r.ts, t_local: fmt(r.ts), ...data };
       });
 
-      return new Response(JSON.stringify(series), {
-        headers: { "content-type": "application/json", ...cors }
-      });
+      return new Response(JSON.stringify(series), { headers: { "content-type": "application/json", ...cors } });
     }
 
-
-    // --- history raw (exact match)
+    // --- history raw
     if (path === "/api/history_raw") {
       const hours = Number(url.searchParams.get("hours") || "24");
       const since = Date.now() - hours * 3600 * 1000;
@@ -235,9 +210,7 @@ export default {
         payload: JSON.parse(r.payload || "{}"),
       }));
 
-      return new Response(JSON.stringify(out), {
-        headers: { "content-type": "application/json", ...cors }
-      });
+      return new Response(JSON.stringify(out), { headers: { "content-type": "application/json", ...cors } });
     }
 
     // --- simple ingest helper (manual tests)
@@ -253,8 +226,7 @@ export default {
           body.forEach((v, k) => (params[k] = v));
         }
       }
-      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)")
-        .bind(Date.now(), JSON.stringify(params)).run();
+      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)").bind(Date.now(), JSON.stringify(params)).run();
       return new Response(JSON.stringify({ ok: true, saved: true, params }), {
         headers: { "content-type": "application/json", "Cache-Control": "no-store", ...cors }
       });
@@ -264,35 +236,23 @@ export default {
     if (path === "/api/export.csv") {
       const hoursParam = url.searchParams.get("hours");
       const rows = hoursParam
-        ? await env.DB
-            .prepare("SELECT ts, payload FROM samples WHERE ts>=? ORDER BY ts ASC")
-            .bind(Date.now() - Number(hoursParam) * 3600 * 1000)
-            .all()
-        : await env.DB
-            .prepare("SELECT ts, payload FROM samples ORDER BY ts ASC")
-            .all();
+        ? await env.DB.prepare("SELECT ts, payload FROM samples WHERE ts>=? ORDER BY ts ASC")
+            .bind(Date.now() - Number(hoursParam) * 3600 * 1000).all()
+        : await env.DB.prepare("SELECT ts, payload FROM samples ORDER BY ts ASC").all();
 
       const samples = rows.results.map((r) => {
         const raw = JSON.parse(r.payload || "{}");
-        const si = toSI(raw);
-        return {
-          ts: r.ts,
-          ts_local: fmt(r.ts),
-          ...si,            // SI first for convenience
-          ...raw,           // raw fields also included
-          raw_json: JSON.stringify(raw),
-        };
+        const si = raw._processed || toSI(raw);
+        return { ts: r.ts, ts_local: fmt(r.ts), ...si, ...raw, raw_json: JSON.stringify(raw) };
       });
 
       // union of keys across all samples
       const keys = Array.from(
-        samples.reduce((s, o) => { Object.keys(o).forEach((k) => s.add(k)); return s; },
-                       new Set(["ts", "ts_local"]))
+        samples.reduce((s, o) => { Object.keys(o).forEach((k) => s.add(k)); return s; }, new Set(["ts", "ts_local"]))
       );
 
-      const esc = (v) =>
-        v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, ".");
-      const csv = [keys.join(","), ...samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(","))].join("\n");
+      const esc = (v) => (v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, "."));
+      const csv = [keys.join(","), ...samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(","))].join("\n")].join("\n");
 
       return new Response(csv, {
         headers: {
@@ -335,16 +295,14 @@ function dewpointC(tC, rh) {
 
 // Ecowitt + Weather Underground → SI (C, m/s, hPa, mm)
 function toSI(d) {
-  const norm = (obj) => Object.fromEntries(
-    Object.entries(obj).map(([k, v]) => [k.toLowerCase(), v])
-  );
-  const u = norm(d); // normalized lowercase copy
+  const norm = (obj) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k.toLowerCase(), v]));
+  const u = norm(d);
 
   const num = (v) => (v == null || v === "" ? null : Number(v));
   const pick = (o, ...keys) => { for (const k of keys) if (o[k] != null) return o[k]; return null; };
 
-  // --- temperature (°F → °C)
-  const tOutF = num(pick(u, "tempf", "outtempf", "temperature")); 
+  // temperature (°F → °C)
+  const tOutF = num(pick(u, "tempf", "outtempf", "temperature"));
   const tOutC = tOutF != null ? (tOutF - 32) * 5/9 : null;
 
   const rhOut = num(pick(u, "humidity", "outhumidity"));
@@ -353,44 +311,43 @@ function toSI(d) {
   const feelsOutC = feelsOutF != null ? (feelsOutF - 32) * 5/9 : null;
 
   const dewOutF = num(pick(u, "dewpointf"));
-  const dewpointC = (t, rh) => {
+  const dewpointCfn = (t, rh) => {
     if (t == null || rh == null) return null;
     const a = 17.62, b = 243.12;
     const g = (a * t) / (b + t) + Math.log(rh / 100);
     return (b * g) / (a - g);
-  };
-  const dewOutC = dewOutF != null ? (dewOutF - 32) * 5/9 : dewpointC(tOutC, rhOut);
+    };
+  const dewOutC = dewOutF != null ? (dewOutF - 32) * 5/9 : dewpointCfn(tOutC, rhOut);
 
-  // --- indoor (same logic)
+  // indoor
   const tInF = num(pick(u, "indoortempf", "tempinf"));
   const tInC = tInF != null ? (tInF - 32) * 5/9 : null;
   const rhIn = num(pick(u, "indoorhumidity", "humidityin"));
 
-  // --- solar / uv
+  // solar / uv
   const solar = num(pick(u, "solarradiation", "solar"));
   const uv = num(pick(u, "uv"));
 
-  // --- rain (in → mm)
+  // rain (in → mm)
   const in2mm = (x) => (x == null ? null : Number(x) * 25.4);
   const rainRate   = in2mm(pick(u, "rainratein"));   // Ecowitt
-  const rainWU     = in2mm(pick(u, "rainin"));       // WU incremental
+  const rainWU     = in2mm(pick(u, "rainin"));       // WU incremental per upload
   const rainHourly = in2mm(pick(u, "hourlyrainin"));
   const rainDaily  = in2mm(pick(u, "dailyrainin"));
   const rainEvent  = in2mm(pick(u, "eventrainin"));
   const rain24h    = in2mm(pick(u, "24hourrainin", "rain24hin"));
 
-  // if WU only sends incremental rain, estimate mm/hr
-  const rainRateFinal = rainRate != null ? rainRate :
-                        rainWU != null ? rainWU * 60 : null;
+  // if WU only sends incremental rain per upload, approximate mm/hr
+  const rainRateFinal = rainRate != null ? rainRate : (rainWU != null ? rainWU * 60 : null);
 
-  // --- wind (mph → m/s)
+  // wind (mph → m/s)
   const mph2ms = (x) => (x == null ? null : Number(x) * 0.44704);
   const wind = mph2ms(pick(u, "windspeedmph"));
   const gust = mph2ms(pick(u, "windgustmph"));
   const dir  = num(pick(u, "winddir"));
   const dir10m = num(pick(u, "winddir_avg10m", "windavgdir", "winddir10m"));
 
-  // --- pressure (inHg → hPa)
+  // pressure (prefer hPa; else inHg → hPa)
   const inHg2hPa = (x) => (x == null ? null : Number(x) * 33.8639);
   const presRel  = num(pick(u, "baromrelhpa"));
   const presAbs  = num(pick(u, "baromabshpa"));
@@ -398,8 +355,8 @@ function toSI(d) {
   const presRelHpa = presRel != null ? presRel : inHg2hPa(presWU);
   const presAbsHpa = presAbs != null ? presAbs : null;
 
-  // --- metadata
-  const stationID = pick(u, "id", "station");  // WU ID
+  // metadata
+  const stationID = pick(u, "id", "station");
   const stationType = pick(u, "stationtype", "softwaretype");
 
   return {
@@ -455,7 +412,7 @@ async function appendToGitHubCSV(env, minutes = 60) {
 
   const samples = rows.results.map((r) => {
     const raw = JSON.parse(r.payload || "{}");
-    const si = toSI(raw);
+    const si = raw._processed || toSI(raw);
     return {
       ts: r.ts,
       ts_local: fmt(r.ts),

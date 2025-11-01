@@ -98,6 +98,49 @@ export default {
       });
     }
 
+    // --- /api/health : quick liveness + last sample time ---
+    if (path === "/api/health") {
+      const row = await env.DB
+        .prepare("SELECT ts, payload FROM samples ORDER BY id DESC LIMIT 1")
+        .first();
+
+      const now = Date.now();
+      let status = "no-data";
+      let lag_s = null;
+      let last = null;
+
+      if (row) {
+        lag_s = Math.round((now - row.ts) / 1000);
+        status = lag_s <= 120 ? "ok" : "stale"; // <=2 minutes considered healthy
+        try { last = JSON.parse(row.payload || "{}"); } catch { last = null; }
+      }
+
+      const fmt = (ms) => {
+        const d = new Date(ms);
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth()+1)}/${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+      };
+
+      return new Response(JSON.stringify({
+        status,
+        now,
+        now_local: fmt(now),
+        last_ts: row?.ts ?? null,
+        last_ts_local: row ? fmt(row.ts) : null,
+        lag_s,
+        last
+      }), {
+        headers: {
+          "content-type": "application/json",
+          // make sure responses are never cached
+          "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+          ...cors
+        }
+      });
+    }
+
+
+
     // --- latest raw
     if (path.startsWith("/api/latest_raw")) {
       const row = await env.DB

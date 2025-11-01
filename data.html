@@ -25,7 +25,7 @@
   </style>
 </head>
 <body>
-  <h1>AW001 (Kessel-Lo) – live data</h1>
+  <h1 id="station-name">AW001 (Kessel-Lo) – live data</h1>
   <div class="sub">
     <span id="updated">updated: —</span>
     · <a id="csv" class="btn" href="https://api.andesaware.com/api/export.csv?hours=24">download csv</a>
@@ -35,6 +35,8 @@
   <div class="grid" id="cards">
     <div class="card"><div class="k">Temperature</div><div class="v" id="temp">—</div></div>
     <div class="card"><div class="k">Humidity</div><div class="v" id="rh">—</div></div>
+    <div class="card"><div class="k">Indoor Temp</div><div class="v" id="temp_in">—</div></div>
+    <div class="card"><div class="k">Indoor Humidity</div><div class="v" id="rh_in">—</div></div>
     <div class="card"><div class="k">Pressure (rel)</div><div class="v" id="presrel">—</div></div>
     <div class="card"><div class="k">Pressure (abs)</div><div class="v" id="presabs">—</div></div>
     <div class="card"><div class="k">Wind</div><div class="v" id="wind">—</div></div>
@@ -67,6 +69,8 @@
         <th>time (utc)</th>
         <th>temp (°C)</th>
         <th>rh (%)</th>
+        <th>in temp (°C)</th>
+        <th>in rh (%)</th>
         <th>press rel (hPa)</th>
         <th>press abs (hPa)</th>
         <th>wind (m/s)</th>
@@ -122,18 +126,28 @@
 
     function renderCards(latest) {
       const d = latest?.data || {};
-      $('temp').textContent  = fmt(d.outdoor_temp_c, '°C');
-      $('rh').textContent    = fmt(d.outdoor_humidity_pct, '%', 0);
-      $('presrel').textContent = fmt(d.pressure_rel_hpa, 'hPa', 0);
-      $('presabs').textContent = fmt(d.pressure_abs_hpa, 'hPa', 0);
+      $('station-name').textContent = `${d.station_id || 'AW001'} – live data`;
+
+      $('temp').textContent     = fmt(d.outdoor_temp_c, '°C');
+      $('rh').textContent       = fmt(d.outdoor_humidity_pct, '%', 0);
+
+      $('temp_in').textContent  = fmt(d.indoor_temp_c, '°C');
+      $('rh_in').textContent    = fmt(d.indoor_humidity_pct, '%', 0);
+
+      $('presrel').textContent  = fmt(d.pressure_rel_hpa, 'hPa', 0);
+      $('presabs').textContent  = fmt(d.pressure_abs_hpa, 'hPa', 0);
+
       $('wind').textContent  = (d.wind_speed_ms==null && d.wind_dir_deg==null)
         ? '—' : `${fmt(d.wind_speed_ms,'m/s')} @ ${d.wind_dir_deg ?? '—'}°`;
       $('gust').textContent  = fmt(d.wind_gust_ms, 'm/s');
+
       $('rrate').textContent = fmt(d.rain_rate_mm_hr, 'mm/h');
       $('rhour').textContent = fmt(d.rain_hourly_mm, 'mm');
       $('rdaily').textContent = fmt(d.rain_daily_mm, 'mm');
+
       $('solar').textContent = fmt(d.solar_wm2, 'W/m²', 0);
-      $('uv').textContent    = fmt(d.uv_index, '', 1);
+      $('uv').textContent = fmt(d.uv_index, '', 1);
+
       $('updated').textContent = `updated: ${latest?.ts_local ?? '—'} UTC`;
     }
 
@@ -145,6 +159,8 @@
           <td>${r.t_local}</td>
           <td>${fmt(r.outdoor_temp_c,'°C')}</td>
           <td>${fmt(r.outdoor_humidity_pct,'%',0)}</td>
+          <td>${fmt(r.indoor_temp_c,'°C')}</td>
+          <td>${fmt(r.indoor_humidity_pct,'%',0)}</td>
           <td>${fmt(r.pressure_rel_hpa,'hPa',0)}</td>
           <td>${fmt(r.pressure_abs_hpa,'hPa',0)}</td>
           <td>${fmt(r.wind_speed_ms,'')}</td>
@@ -156,12 +172,14 @@
           <td>${fmt(r.solar_wm2,'',0)}</td>
           <td>${fmt(r.uv_index,'',0)}</td>
         </tr>`).join('');
-      tbody.innerHTML = rows || `<tr><td colspan="13" style="text-align:center;color:#6b7280">no data</td></tr>`;
+      tbody.innerHTML = rows || `<tr><td colspan="15" style="text-align:center;color:#6b7280">no data</td></tr>`;
     }
 
     function renderChart(series) {
       const points = series
-        .map(p => ({ x:new Date(p.t), y: p.outdoor_temp_c }))
+        .map
+
+(p => ({ x:new Date(p.t), y: p.outdoor_temp_c }))
         .filter(p => p.y != null && !Number.isNaN(p.y));
 
       // avoid Chart.js error when no data

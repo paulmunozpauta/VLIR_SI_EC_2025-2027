@@ -81,11 +81,12 @@ export default {
         }
       }
 
-      // save raw params
-      await save(params);
+      // save raw params + processed SI data
+      const processed = toSI(params);
+      await save({ ...params, _processed: processed });
       return new Response("OK", { headers: cors });
-    }
-        
+        }
+      
 
     // --- latest (SI)
     if (path === "/api/latest") {
@@ -93,14 +94,23 @@ export default {
         .prepare("SELECT ts, payload FROM samples ORDER BY id DESC LIMIT 1")
         .first();
 
+      let data = {};
+      if (row) {
+        const raw = JSON.parse(row.payload || "{}");
+        // If we have pre-processed SI data saved under _processed, use that.
+        // Otherwise run toSI() on the raw payload.
+        data = raw._processed || toSI(raw);
+      }
+
       const out = row
-        ? { ts: row.ts, ts_local: fmt(row.ts), data: toSI(JSON.parse(row.payload || "{}")) }
+        ? { ts: row.ts, ts_local: fmt(row.ts), data }
         : {};
 
       return new Response(JSON.stringify(out), {
         headers: { "content-type": "application/json", ...cors }
       });
     }
+
 
     // --- /api/health : quick liveness + last sample time
     if (path === "/api/health") {
@@ -163,13 +173,19 @@ export default {
 
       const series = rows.results.map((r) => {
         const raw = JSON.parse(r.payload || "{}");
-        return { t: r.ts, t_local: fmt(r.ts), ...toSI(raw) };
+        const data = raw._processed || toSI(raw);  // use cached processed values if available
+        return {
+          t: r.ts,
+          t_local: fmt(r.ts),
+          ...data
+        };
       });
 
       return new Response(JSON.stringify(series), {
         headers: { "content-type": "application/json", ...cors }
       });
     }
+
 
     // --- history raw (exact match)
     if (path === "/api/history_raw") {

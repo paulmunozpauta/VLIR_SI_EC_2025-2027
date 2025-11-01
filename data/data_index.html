@@ -48,113 +48,105 @@
     <canvas id="chart"></canvas>
   </div>
 
-  <!-- chart.js + date adapter -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+<!-- libs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 
-  <script>
-  const API = 'https://api.andesaware.com';
-  const $status = document.getElementById('status');
-  const $cards  = document.getElementById('cards');
-  const $hours  = document.getElementById('hours');
-  const $btn    = document.getElementById('refresh');
-  const $updated= document.getElementById('updated');
-  const ctx     = document.getElementById('chart').getContext('2d');
-  let chart;
+<script>
+const ORIGIN = 'https://api.andesaware.com';
 
-  const fmt = (x, unit) => (x==null || isNaN(x)) ? '—' : `${Number(x).toFixed(1)} ${unit}`;
-  const asLocalTime = ts => new Date(ts).toLocaleString();
+let autoTimer = null;
 
-  async function getLatest() {
-    const r = await fetch(`${API}/api/latest`, { cache:'no-store' });
-    if (!r.ok) throw new Error(`latest ${r.status}`);
-    return r.json();
-  }
-  async function getHistory(h) {
-    const r = await fetch(`${API}/api/history?hours=${h}`, { cache:'no-store' });
-    if (!r.ok) throw new Error(`history ${r.status}`);
-    return r.json();
-  }
+// cache dom
+const $err   = document.getElementById('error');
+const $hours = document.getElementById('hours');     // your <select id="hours">
+const $btn   = document.getElementById('refresh');   // your <button id="refresh">
+const $t     = (id) => document.getElementById(id);
 
-  function renderCards(latest) {
-    const d = latest?.data || {};
-    const items = [
-      ['Temperature', fmt(d.temp_c, '°C')],
-      ['Humidity', d.rh!=null ? `${Number(d.rh)} %` : '—'],
-      ['Pressure', fmt(d.pressure_hpa, 'hPa')],
-      ['Wind', d.wind_ms!=null ? `${Number(d.wind_ms).toFixed(1)} m/s @ ${d.wind_dir_deg ?? '—'}°` : '—'],
-      ['Rain rate', fmt(d.rain_mm_hr, 'mm/hr')],
-      ['Solar', fmt(d.solar_wm2, 'W/m²')],
-      ['UV index', d.uv!=null ? Number(d.uv).toFixed(1) : '—'],
-    ];
-    $cards.innerHTML = items.map(([k,v]) =>
-      `<div class="card">
-        <div class="k">${k}</div>
-        <div class="v">${v}</div>
-      </div>`).join('');
-  }
+// cards helper
+function setCard(id, text) { $t(id).textContent = text ?? '—'; }
+function n(v, d=1) { return v==null || Number.isNaN(v) ? null : Number(v).toFixed(d); }
 
-  function renderChart(series){
-    const labels = series.map(p => p.t);
-    const temp   = series.map(p => p.temp_c);
-    const wind   = series.map(p => p.wind_ms);
-    const rain   = series.map(p => p.rain_mm_hr);
+// destroy-safe chart render
+function renderChart(series) {
+  const canvas = document.getElementById('chart');
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
 
-    if (chart) chart.destroy();
-    chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          { label: 'Temp (°C)',     data: temp, yAxisID: 'y1', tension: 0.25 },
-          { label: 'Wind (m/s)',    data: wind, yAxisID: 'y2', tension: 0.25 },
-          { label: 'Rain (mm/hr)',  data: rain, yAxisID: 'y3', tension: 0.25 }
-        ]
-      },
-      options: {
-        responsive: true,
-        parsing: false,
-        interaction: { mode: 'index', intersect: false },
-        scales: {
-          x: { type: 'time', time: { tooltipFormat: 'Pp' } },
-          y1: { type: 'linear', position: 'left' },
-          y2: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } },
-          y3: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, display: false }
-        },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              title: (items) => asLocalTime(items[0].parsed.x)
-            }
-          }
-        }
+  const ctx = canvas.getContext('2d');
+  const labels = series.map(p => new Date(p.t));
+  const temp   = series.map(p => p.outdoor_temp_c);
+  const wind   = series.map(p => p.wind_speed_ms);
+  const rain   = series.map(p => p.rain_rate_mm_hr);
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Temp (°C)', data: temp, yAxisID: 'y1' },
+        { label: 'Wind (m/s)', data: wind, yAxisID: 'y2' },
+        { label: 'Rain rate (mm/h)', data: rain, yAxisID: 'y3' }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      parsing: false,
+      scales: {
+        x: { type: 'time', time: { tooltipFormat: 'dd/MM/yyyy HH:mm' } },
+        y1: { type: 'linear', position: 'left' },
+        y2: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } },
+        y3: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, display: false }
       }
-    });
-  }
-
-  async function refresh(){
-    try {
-      $status.textContent = 'loading…';
-      $btn.disabled = true;
-      const [latest, hist] = await Promise.all([getLatest(), getHistory($hours.value)]);
-      renderCards(latest);
-      renderChart(hist);
-      $status.textContent = 'live';
-      const when = latest?.ts ? asLocalTime(latest.ts) : '—';
-      $updated.textContent = `last update: ${when}`;
-    } catch (e) {
-      $status.innerHTML = `<span class="error">error: ${e.message}</span>`;
-    } finally {
-      $btn.disabled = false;
     }
+  });
+}
+
+// data loaders
+async function loadLatest() {
+  const r = await fetch(`${ORIGIN}/api/latest`, { cache: 'no-store' });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function loadHistory(h=24) {
+  const r = await fetch(`${ORIGIN}/api/history?hours=${h}`, { cache: 'no-store' });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function refresh() {
+  try {
+    $err && ($err.textContent = '');
+    const hours = Number($hours?.value || 24);
+    const [latest, hist] = await Promise.all([loadLatest(), loadHistory(hours)]);
+    const d = latest?.data || {};
+
+    // update cards (use your element IDs)
+    setCard('card-temp', n(d.outdoor_temp_c));
+    setCard('card-rh',   d.outdoor_humidity_pct != null ? `${Number(d.outdoor_humidity_pct).toFixed(0)} %` : '—');
+    setCard('card-pres', n(d.pressure_rel_hpa, 1));
+    setCard('card-wind', d.wind_speed_ms != null ? `${Number(d.wind_speed_ms).toFixed(1)} m/s @ ${d.wind_dir_deg ?? '—'}°` : '—');
+    setCard('card-rain', n(d.rain_rate_mm_hr, 2));
+    setCard('card-solar', n(d.solar_wm2, 0));
+    setCard('card-uv', d.uv_index != null ? Number(d.uv_index).toFixed(1) : '—');
+
+    // line chart
+    renderChart(hist);
+  } catch (e) {
+    console.error(e);
+    $err && ($err.textContent = `error: ${e.message || e}`);
   }
+}
 
-  $btn.addEventListener('click', refresh);
-  $hours.addEventListener('change', refresh);
+// wire UI once
+document.addEventListener('DOMContentLoaded', () => {
+  $btn?.addEventListener('click', () => refresh());
+  refresh();                         // initial
+  clearInterval(autoTimer);
+  autoTimer = setInterval(refresh, 60_000); // refresh every 60 s
+});
+</script>
 
-  // first load + auto-refresh every 15 s
-  refresh();
-  setInterval(refresh, 15000);
-  </script>
 </body>
 </html>

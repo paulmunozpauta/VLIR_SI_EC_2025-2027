@@ -55,6 +55,38 @@ export default {
       return { ts, data };
     };
 
+    // --- WU classic endpoint alias (Weather Underground protocol)
+    if (path === "/weatherstation/updateweatherstation.php") {
+      // Parse GET/POST the same as our ecowitt route
+      let params = {};
+      if (request.method === "GET") {
+        url.searchParams.forEach((v, k) => (params[k] = v));
+      } else if (request.method === "POST") {
+        const ct = (request.headers.get("content-type") || "").toLowerCase();
+        if (ct.includes("application/json")) params = await request.json().catch(() => ({}));
+        else if (ct.includes("application/x-www-form-urlencoded")) {
+          const body = new URLSearchParams(await request.text());
+          body.forEach((v, k) => (params[k] = v));
+        } else {
+          return new Response("unsupported content-type", { status: 415, headers: cors });
+        }
+      } else {
+        return new Response("method not allowed", { status: 405, headers: cors });
+      }
+
+      // Do NOT enforce passkey here (WU protocol doesn't send it)
+      // Save raw + processed for fast /api/latest
+      const processed = toSI(params);
+      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)")
+        .bind(Date.now(), JSON.stringify({ ...params, _processed: processed }))
+        .run();
+
+      // Many devices expect the exact string "success"
+      return new Response("success", { headers: cors });
+    }
+
+
+
 
     // --- receiver (Ecowitt + Weather Underground compatible)
     if (path === "/api/ecowitt" || path.startsWith("/api/ecowitt/")) {

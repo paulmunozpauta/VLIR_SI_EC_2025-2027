@@ -252,7 +252,10 @@ export default {
       );
 
       const esc = (v) => (v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, "."));
-      const csv = [keys.join(","), ...samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(","))].join("\n")].join("\n");
+      const csv = [
+        keys.join(","),
+        ...samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(",")),
+      ].join("\n");
 
       return new Response(csv, {
         headers: {

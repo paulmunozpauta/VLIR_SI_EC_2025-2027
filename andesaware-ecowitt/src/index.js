@@ -13,7 +13,6 @@ export default {
       "Access-Control-Allow-Headers": "Content-Type",
       "Vary": "Origin",
       "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
-
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
 
@@ -25,18 +24,19 @@ export default {
     }
 
     // --- debug echo (see exactly what the device sends)
-    if (path.startsWith("/api/echo")) {
+    if (path === "/api/echo" || path.startsWith("/api/echo/")) {
       let parsed = null;
-      const ct = request.headers.get("content-type") || "";
+      const ct = (request.headers.get("content-type") || "").toLowerCase();
       if (ct.includes("application/json")) parsed = await request.json().catch(() => null);
       else if (ct.includes("application/x-www-form-urlencoded")) {
         const body = new URLSearchParams(await request.text());
         parsed = {};
-        body.forEach((v, k) => parsed[k] = v);
+        body.forEach((v, k) => (parsed[k] = v));
       }
       const out = {
         method: request.method,
         url: request.url,
+        path,
         headers: Object.fromEntries([...request.headers.entries()].slice(0, 200)),
         query: Object.fromEntries(url.searchParams.entries()),
         parsed
@@ -56,14 +56,14 @@ export default {
     };
 
     // --- receiver (Ecowitt / WU compatible)
-    if (path.startsWith("/api/ecowitt")) {
+    if (path === "/api/ecowitt" || path.startsWith("/api/ecowitt/")) {
       let params = {};
       if (request.method === "GET") {
         url.searchParams.forEach((v, k) => (params[k] = v));
       } else if (request.method === "POST") {
-        const ct = request.headers.get("content-type") || "";
+        const ct = (request.headers.get("content-type") || "").toLowerCase();
         if (ct.includes("application/json")) {
-          params = await request.json();
+          params = await request.json().catch(() => ({}));
         } else if (ct.includes("application/x-www-form-urlencoded")) {
           const body = new URLSearchParams(await request.text());
           body.forEach((v, k) => (params[k] = v));
@@ -84,7 +84,7 @@ export default {
     }
 
     // --- latest (SI)
-    if (path.startsWith("/api/latest")) {
+    if (path === "/api/latest") {
       const row = await env.DB
         .prepare("SELECT ts, payload FROM samples ORDER BY id DESC LIMIT 1")
         .first();
@@ -98,7 +98,7 @@ export default {
       });
     }
 
-    // --- /api/health : quick liveness + last sample time ---
+    // --- /api/health : quick liveness + last sample time
     if (path === "/api/health") {
       const row = await env.DB
         .prepare("SELECT ts, payload FROM samples ORDER BY id DESC LIMIT 1")
@@ -115,12 +115,6 @@ export default {
         try { last = JSON.parse(row.payload || "{}"); } catch { last = null; }
       }
 
-      const fmt = (ms) => {
-        const d = new Date(ms);
-        const pad = (n) => String(n).padStart(2, "0");
-        return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth()+1)}/${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
-      };
-
       return new Response(JSON.stringify({
         status,
         now,
@@ -132,17 +126,14 @@ export default {
       }), {
         headers: {
           "content-type": "application/json",
-          // make sure responses are never cached
           "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
           ...cors
         }
       });
     }
 
-
-
-    // --- latest raw
-    if (path.startsWith("/api/latest_raw")) {
+    // --- latest raw (exact match so it isn't shadowed)
+    if (path === "/api/latest_raw") {
       const row = await env.DB
         .prepare("SELECT ts, payload FROM samples ORDER BY id DESC LIMIT 1")
         .first();
@@ -157,7 +148,7 @@ export default {
     }
 
     // --- history (SI)  /api/history?hours=24
-    if (path.startsWith("/api/history")) {
+    if (path === "/api/history") {
       const hours = Number(url.searchParams.get("hours") || "24");
       const since = Date.now() - hours * 3600 * 1000;
 
@@ -176,8 +167,8 @@ export default {
       });
     }
 
-    // --- history raw
-    if (path.startsWith("/api/history_raw")) {
+    // --- history raw (exact match)
+    if (path === "/api/history_raw") {
       const hours = Number(url.searchParams.get("hours") || "24");
       const since = Date.now() - hours * 3600 * 1000;
 
@@ -197,29 +188,28 @@ export default {
       });
     }
 
+    // --- simple ingest helper (manual tests)
     if (path === "/api/ingest") {
       let params = {};
       if (request.method === "GET") {
-        new URL(request.url).searchParams.forEach((v,k)=> params[k]=v);
+        new URL(request.url).searchParams.forEach((v, k) => (params[k] = v));
       } else if (request.method === "POST") {
-        const ct = request.headers.get("content-type") || "";
-        if (ct.includes("application/json")) params = await request.json().catch(()=>({}));
+        const ct = (request.headers.get("content-type") || "").toLowerCase();
+        if (ct.includes("application/json")) params = await request.json().catch(() => ({}));
         else if (ct.includes("application/x-www-form-urlencoded")) {
           const body = new URLSearchParams(await request.text());
-          body.forEach((v,k)=> params[k]=v);
+          body.forEach((v, k) => (params[k] = v));
         }
       }
       await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)")
         .bind(Date.now(), JSON.stringify(params)).run();
-      return new Response(JSON.stringify({ ok:true, saved:true, params }), {
-        headers: { "content-type": "application/json", "Cache-Control":"no-store", ...cors }
+      return new Response(JSON.stringify({ ok: true, saved: true, params }), {
+        headers: { "content-type": "application/json", "Cache-Control": "no-store", ...cors }
       });
     }
 
-
-
-    // --- CSV export (all rows). If you want a window, add ?hours=24
-    if (path.startsWith("/api/export.csv")) {
+    // --- CSV export (all rows, or window with ?hours=24)
+    if (path === "/api/export.csv") {
       const hoursParam = url.searchParams.get("hours");
       const rows = hoursParam
         ? await env.DB
@@ -244,14 +234,12 @@ export default {
 
       // union of keys across all samples
       const keys = Array.from(
-        samples.reduce((s, o) => {
-          Object.keys(o).forEach((k) => s.add(k));
-          return s;
-        }, new Set(["ts", "ts_local"]))
+        samples.reduce((s, o) => { Object.keys(o).forEach((k) => s.add(k)); return s; },
+                       new Set(["ts", "ts_local"]))
       );
 
       const esc = (v) =>
-        v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, "."); // protect commas (CSV)
+        v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, ".");
       const csv = [keys.join(","), ...samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(","))].join("\n");
 
       return new Response(csv, {
@@ -283,15 +271,12 @@ function fmt(ms) {
 
 // robust numeric helpers + unit conversions
 const num = (v) => (v == null || v === "" ? null : Number(v));
-const pick = (o, ...keys) => {
-  for (const k of keys) if (o[k] != null) return o[k];
-  return null;
-};
+const pick = (o, ...keys) => { for (const k of keys) if (o[k] != null) return o[k]; return null; };
+
 // Magnus dew point (°C)
 function dewpointC(tC, rh) {
   if (tC == null || rh == null) return null;
-  const a = 17.62,
-    b = 243.12;
+  const a = 17.62, b = 243.12;
   const gamma = (a * tC) / (b + tC) + Math.log(rh / 100);
   return (b * gamma) / (a - gamma);
 }
@@ -320,31 +305,31 @@ function toSI(d) {
   // rain (in → mm), rate (in/hr → mm/hr)
   const in2mm = (x) => (x == null ? null : Number(x) * 25.4);
   const rate2mm = (x) => (x == null ? null : Number(x) * 25.4);
-  const rainRate = rate2mm(pick(d, "rainratein"));
+  const rainRate   = rate2mm(pick(d, "rainratein"));
   const rainHourly = in2mm(pick(d, "hourlyrainin"));
-  const rainDaily = in2mm(pick(d, "dailyrainin"));
-  const rainEvent = in2mm(pick(d, "eventrainin"));
-  const rain24h = in2mm(pick(d, "24hourrainin", "rain24h_in", "rain24hin"));
+  const rainDaily  = in2mm(pick(d, "dailyrainin"));
+  const rainEvent  = in2mm(pick(d, "eventrainin"));
+  const rain24h    = in2mm(pick(d, "24hourrainin", "rain24h_in", "rain24hin"));
   const rainWeekly = in2mm(pick(d, "weeklyrainin"));
-  const rainMonthly = in2mm(pick(d, "monthlyrainin"));
+  const rainMonthly= in2mm(pick(d, "monthlyrainin"));
   const rainYearly = in2mm(pick(d, "yearlyrainin"));
 
   // wind (mph → m/s)
   const mph2ms = (x) => (x == null ? null : Number(x) * 0.44704);
-  const wind = mph2ms(pick(d, "windspeedmph"));
-  const gust = mph2ms(pick(d, "windgustmph"));
-  const dir = num(pick(d, "winddir"));
+  const wind   = mph2ms(pick(d, "windspeedmph"));
+  const gust   = mph2ms(pick(d, "windgustmph"));
+  const dir    = num(pick(d, "winddir"));
   const dir10m = num(pick(d, "winddir_avg10m", "windavgdir", "winddir10m"));
 
   // pressure — prefer hPa fields; else inHg → hPa
   const inHg2hPa = (x) => (x == null ? null : Number(x) * 33.8639);
-  const presRel = num(pick(d, "baromrelhpa"));
-  const presAbs = num(pick(d, "baromabshpa"));
+  const presRel  = num(pick(d, "baromrelhpa"));
+  const presAbs  = num(pick(d, "baromabshpa"));
   const presRelHpa = presRel != null ? presRel : inHg2hPa(pick(d, "baromrelin"));
   const presAbsHpa = presAbs != null ? presAbs : inHg2hPa(pick(d, "baromabsin"));
 
   // device
-  const heap = num(pick(d, "heap"));
+  const heap    = num(pick(d, "heap"));
   const runtime = num(pick(d, "runtime"));
 
   return {
@@ -364,18 +349,18 @@ function toSI(d) {
 
     // rain
     rain_rate_mm_hr: rainRate,
-    rain_hourly_mm: rainHourly,
-    rain_daily_mm: rainDaily,
-    rain_event_mm: rainEvent,
-    rain_24h_mm: rain24h,
-    rain_weekly_mm: rainWeekly,
+    rain_hourly_mm:  rainHourly,
+    rain_daily_mm:   rainDaily,
+    rain_event_mm:   rainEvent,
+    rain_24h_mm:     rain24h,
+    rain_weekly_mm:  rainWeekly,
     rain_monthly_mm: rainMonthly,
-    rain_yearly_mm: rainYearly,
+    rain_yearly_mm:  rainYearly,
 
     // wind
     wind_speed_ms: wind,
-    wind_gust_ms: gust,
-    wind_dir_deg: dir,
+    wind_gust_ms:  gust,
+    wind_dir_deg:  dir,
     wind_dir_avg10m_deg: dir10m,
 
     // pressure
@@ -383,15 +368,15 @@ function toSI(d) {
     pressure_abs_hpa: presAbsHpa,
 
     // device
-    heap_bytes: heap,
-    runtime_s: runtime,
+    heap_bytes:  heap,
+    runtime_s:   runtime,
 
     // marker
-    stationtype: d.stationtype ?? null,
+    stationtype: d.stationtype ?? null
   };
 }
 
-// Append all rows to a GitHub CSV (simple appender; may duplicate lines if run often)
+// Append rows from last N minutes to a GitHub CSV
 async function appendToGitHubCSV(env, minutes = 60) {
   const since = Date.now() - minutes * 60 * 1000;
 
@@ -425,8 +410,8 @@ async function appendToGitHubCSV(env, minutes = 60) {
   const esc = (v) => (v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, "."));
   const newChunk = samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(",")).join("\n") + "\n";
 
-  const repo   = env.GH_REPO;                 // "owner/repo"
-  const branch = env.GH_BRANCH || "main";
+  const repo     = env.GH_REPO;           // "owner/repo"
+  const branch   = env.GH_BRANCH || "main";
   const filepath = "archives/ecowitt/ecowitt_history.csv";
   const api = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(filepath)}`;
   const headers = {
@@ -435,7 +420,7 @@ async function appendToGitHubCSV(env, minutes = 60) {
     "User-Agent": "andesaware-ecowitt-archiver",
   };
 
-  // get existing file (to append)
+  // get + append
   const get = await fetch(`${api}?ref=${branch}`, { headers });
   let sha, oldContent = "";
   if (get.status === 200) {

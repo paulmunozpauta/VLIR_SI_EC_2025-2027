@@ -2,151 +2,150 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>AWARE – live monitoring</title>
-  <meta http-equiv="Cache-Control" content="no-store" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AWARE – live monitoring (Kessel-Lo, Belgium)</title>
   <style>
-    :root { --card: #f5f7fb; --text: #111827; --muted:#6b7280; --border:#e5e7eb; }
-    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color: var(--text); }
-    .wrap { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
-    h1 { font-size: 24px; margin: 0 0 8px 0; }
-    .sub { color: var(--muted); margin-bottom: 20px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 12px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
-    .k { font-size: 12px; color: var(--muted); }
-    .v { font-size: 26px; font-weight: 600; margin-top: 4px; }
-    .row { display:flex; gap:10px; align-items:center; margin: 8px 0 0; color: var(--muted); font-size: 12px; }
-    .error { color: #b91c1c; }
-    .controls { display:flex; gap:10px; align-items:center; margin: 16px 0; }
-    button, select { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background:#fff; cursor:pointer; }
-    button:disabled { opacity:.6; cursor:not-allowed;}
-    canvas { width:100%; height:320px; }
+    :root { --fg:#0f172a; --muted:#64748b; --card:#f1f5f9; }
+    body { margin:0; font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color:var(--fg); }
+    .wrap { max-width:1100px; margin:40px auto; padding:0 16px; }
+    h1 { margin:0 0 6px; font-size:32px; }
+    p.sub { margin:0 0 20px; color:var(--muted); }
+    #error { color:#b91c1c; margin:8px 0 12px; min-height:1.2em; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:12px 0 18px; }
+    .card { background:var(--card); border-radius:12px; padding:16px; }
+    .k { font-size:13px; color:var(--muted); }
+    .v { margin-top:10px; font-size:28px; font-weight:600; }
+    .row { display:flex; gap:12px; align-items:center; margin-top:10px; }
+    select,button { font:inherit; padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; background:#fff; }
+    canvas { width:100%; height:340px; }
   </style>
+
+  <!-- libs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
 </head>
 <body>
   <div class="wrap">
     <h1>andesaware – live weather</h1>
-    <div class="sub">real-time feed from your ecowitt station (si units)</div>
+    <p class="sub">real-time feed from your ecowitt station (si units)</p>
 
-    <div id="status" class="row">loading…</div>
+    <div id="error"></div>
 
-    <div class="grid" id="cards"></div>
+    <div class="grid">
+      <div class="card"><div class="k">Temperature</div><div class="v" id="card-temp">—</div></div>
+      <div class="card"><div class="k">Humidity</div><div class="v" id="card-rh">—</div></div>
+      <div class="card"><div class="k">Pressure</div><div class="v" id="card-pres">—</div></div>
+      <div class="card"><div class="k">Wind</div><div class="v" id="card-wind">—</div></div>
+      <div class="card"><div class="k">Rain rate</div><div class="v" id="card-rain">—</div></div>
+      <div class="card"><div class="k">Solar</div><div class="v" id="card-solar">—</div></div>
+      <div class="card"><div class="k">UV index</div><div class="v" id="card-uv">—</div></div>
+    </div>
 
-    <div class="controls">
+    <canvas id="chart"></canvas>
+
+    <div class="row">
       <label for="hours">history window:</label>
       <select id="hours">
         <option value="6">6 h</option>
         <option value="12">12 h</option>
         <option value="24" selected>24 h</option>
         <option value="48">48 h</option>
-        <option value="72">72 h</option>
+        <option value="168">7 d</option>
       </select>
-      <button id="refresh">refresh</button>
-      <span id="updated" class="row"></span>
+      <button id="refresh" type="button">refresh</button>
     </div>
-
-    <canvas id="chart"></canvas>
   </div>
 
-<!-- libs -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+  <script>
+  const ORIGIN = 'https://api.andesaware.com';
 
-<script>
-const ORIGIN = 'https://api.andesaware.com';
+  const $err   = document.getElementById('error');
+  const $hours = document.getElementById('hours');
+  const $btn   = document.getElementById('refresh');
+  const $      = (id) => document.getElementById(id);
 
-let autoTimer = null;
-
-// cache dom
-const $err   = document.getElementById('error');
-const $hours = document.getElementById('hours');     // your <select id="hours">
-const $btn   = document.getElementById('refresh');   // your <button id="refresh">
-const $t     = (id) => document.getElementById(id);
-
-// cards helper
-function setCard(id, text) { $t(id).textContent = text ?? '—'; }
-function n(v, d=1) { return v==null || Number.isNaN(v) ? null : Number(v).toFixed(d); }
-
-// destroy-safe chart render
-function renderChart(series) {
-  const canvas = document.getElementById('chart');
-  const existing = Chart.getChart(canvas);
-  if (existing) existing.destroy();
-
-  const ctx = canvas.getContext('2d');
-  const labels = series.map(p => new Date(p.t));
-  const temp   = series.map(p => p.outdoor_temp_c);
-  const wind   = series.map(p => p.wind_speed_ms);
-  const rain   = series.map(p => p.rain_rate_mm_hr);
-
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Temp (°C)', data: temp, yAxisID: 'y1' },
-        { label: 'Wind (m/s)', data: wind, yAxisID: 'y2' },
-        { label: 'Rain rate (mm/h)', data: rain, yAxisID: 'y3' }
-      ]
-    },
-    options: {
-      responsive: true,
-      interaction: { mode: 'index', intersect: false },
-      parsing: false,
-      scales: {
-        x: { type: 'time', time: { tooltipFormat: 'dd/MM/yyyy HH:mm' } },
-        y1: { type: 'linear', position: 'left' },
-        y2: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } },
-        y3: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, display: false }
-      }
-    }
-  });
-}
-
-// data loaders
-async function loadLatest() {
-  const r = await fetch(`${ORIGIN}/api/latest`, { cache: 'no-store' });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
-async function loadHistory(h=24) {
-  const r = await fetch(`${ORIGIN}/api/history?hours=${h}`, { cache: 'no-store' });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-}
-
-async function refresh() {
-  try {
-    $err && ($err.textContent = '');
-    const hours = Number($hours?.value || 24);
-    const [latest, hist] = await Promise.all([loadLatest(), loadHistory(hours)]);
-    const d = latest?.data || {};
-
-    // update cards (use your element IDs)
-    setCard('card-temp', n(d.outdoor_temp_c));
-    setCard('card-rh',   d.outdoor_humidity_pct != null ? `${Number(d.outdoor_humidity_pct).toFixed(0)} %` : '—');
-    setCard('card-pres', n(d.pressure_rel_hpa, 1));
-    setCard('card-wind', d.wind_speed_ms != null ? `${Number(d.wind_speed_ms).toFixed(1)} m/s @ ${d.wind_dir_deg ?? '—'}°` : '—');
-    setCard('card-rain', n(d.rain_rate_mm_hr, 2));
-    setCard('card-solar', n(d.solar_wm2, 0));
-    setCard('card-uv', d.uv_index != null ? Number(d.uv_index).toFixed(1) : '—');
-
-    // line chart
-    renderChart(hist);
-  } catch (e) {
-    console.error(e);
-    $err && ($err.textContent = `error: ${e.message || e}`);
+  function setText(id, text) { $(id).textContent = text ?? '—'; }
+  function fmtNum(v, d=1, tail='') {
+    if (v==null || Number.isNaN(v)) return '—';
+    return `${Number(v).toFixed(d)}${tail}`;
   }
-}
 
-// wire UI once
-document.addEventListener('DOMContentLoaded', () => {
-  $btn?.addEventListener('click', () => refresh());
-  refresh();                         // initial
-  clearInterval(autoTimer);
-  autoTimer = setInterval(refresh, 60_000); // refresh every 60 s
-});
-</script>
+  async function getJSON(url) {
+    const r = await fetch(url, { cache:'no-store' });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
 
+  // destroy-safe charting
+  function renderChart(series) {
+    const canvas = document.getElementById('chart');
+    const exists = Chart.getChart(canvas);
+    if (exists) exists.destroy();
+
+    const ctx = canvas.getContext('2d');
+    const labels = series.map(p => new Date(p.t));
+    const temp   = series.map(p => p.outdoor_temp_c);
+    const wind   = series.map(p => p.wind_speed_ms);
+    const rain   = series.map(p => p.rain_rate_mm_hr);
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Temp (°C)', data: temp, yAxisID: 'y1' },
+          { label: 'Wind (m/s)', data: wind, yAxisID: 'y2' },
+          { label: 'Rain rate (mm/h)', data: rain, yAxisID: 'y3' }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        parsing: false,
+        scales: {
+          x: { type: 'time', time: { tooltipFormat: 'dd/MM/yyyy HH:mm' } },
+          y1: { type: 'linear', position: 'left' },
+          y2: { type: 'linear', position: 'right', grid: { drawOnChartArea: false } },
+          y3: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, display: false }
+        }
+      }
+    });
+  }
+
+  async function refresh() {
+    try {
+      $err.textContent = 'loading…';
+      const h = Number($hours.value || 24);
+
+      const [latest, hist] = await Promise.all([
+        getJSON(`${ORIGIN}/api/latest`),
+        getJSON(`${ORIGIN}/api/history?hours=${h}`) // 5-min cadence by default
+      ]);
+
+      const d = latest?.data || {};
+
+      setText('card-temp',  fmtNum(d.outdoor_temp_c, 1, ' °C'));
+      setText('card-rh',    d.outdoor_humidity_pct!=null ? `${Number(d.outdoor_humidity_pct).toFixed(0)} %` : '—');
+      setText('card-pres',  fmtNum(d.pressure_rel_hpa, 1, ' hPa'));
+      setText('card-wind',  (d.wind_speed_ms!=null) ? `${Number(d.wind_speed_ms).toFixed(1)} m/s @ ${d.wind_dir_deg ?? '—'}°` : '—');
+      setText('card-rain',  fmtNum(d.rain_rate_mm_hr, 2, ' mm/h'));
+      setText('card-solar', fmtNum(d.solar_wm2, 0, ' W/m²'));
+      setText('card-uv',    (d.uv_index!=null) ? Number(d.uv_index).toFixed(1) : '—');
+
+      renderChart(hist);
+      $err.textContent = '';
+    } catch (e) {
+      console.error(e);
+      $err.textContent = `error: ${e.message || e}`;
+    }
+  }
+
+  // wire once
+  document.addEventListener('DOMContentLoaded', () => {
+    $btn.addEventListener('click', refresh);
+    refresh();
+    setInterval(refresh, 60_000); // auto update every minute
+  });
+  </script>
 </body>
 </html>

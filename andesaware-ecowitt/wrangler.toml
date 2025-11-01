@@ -1,0 +1,11 @@
+name = "andesaware-ecowitt"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+ECOWITT_PASSKEY = "mypassword123"   # choose your secret
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ecowitt"
+database_id = "a38b60a1-6eed-4391-9c0a-32b6814a97d6"

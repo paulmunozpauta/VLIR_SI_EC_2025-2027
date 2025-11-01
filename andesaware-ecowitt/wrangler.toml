@@ -10,4 +10,4 @@ binding = "DB"
 database_name = "ecowitt"
 database_id = "a38b60a1-6eed-4391-9c0a-32b6814a97d6"
 [triggers]
-crons = ["0 * * * *"]   # every hour at :00 UTC
+crons = ["*/5 * * * *"]   # every 5 min

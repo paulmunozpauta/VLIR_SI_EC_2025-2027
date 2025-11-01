@@ -197,7 +197,6 @@ export default {
       });
     }
 
-    // accepts GET/POST and SAVES the incoming fields
     if (path === "/api/ingest") {
       let params = {};
       if (request.method === "GET") {
@@ -210,7 +209,8 @@ export default {
           body.forEach((v,k)=> params[k]=v);
         }
       }
-      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)").bind(Date.now(), JSON.stringify(params)).run();
+      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)")
+        .bind(Date.now(), JSON.stringify(params)).run();
       return new Response(JSON.stringify({ ok:true, saved:true, params }), {
         headers: { "content-type": "application/json", "Cache-Control":"no-store", ...cors }
       });

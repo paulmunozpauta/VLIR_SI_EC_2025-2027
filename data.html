@@ -7,30 +7,30 @@
   <style>
     :root{--border:#e5e7eb;--muted:#6b7280;--bg:#f9fafb}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;line-height:1.45;margin:0;padding:20px;background:#fff;color:#111}
-    h2{font-size:28px;margin:8px 0 2px}
+    h2{font-size:28px;margin:8px 0 0}
+    #aw-updated{font-size:14px;color:#666;margin-bottom:14px}
     .wrap{max-width:1100px;margin:auto}
     .grid{display:grid;gap:12px}
     .cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:10px 0 14px}
     .card{padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg)}
     .card .k{font-size:12px;color:var(--muted)}
     .card .v{font-size:22px;font-weight:600}
-    .ctrls{display:flex;gap:10px;align-items:center;margin:8px 0 14px}
-    .ctrls > * {font-size:14px}
-    .err{display:none;color:#b91c1c;margin:6px 0}
+    .ctrls{display:flex;gap:12px;align-items:center;margin:8px 0 16px}
+    .err{display:none;color:#b91c1c;margin:6px 0 8px}
     table{width:100%;border-collapse:collapse;font-size:14px}
     thead{background:#f7f7f7}
     th,td{padding:6px 8px;border-top:1px solid var(--border);text-align:center}
     th:first-child,td:first-child{text-align:left}
-    .scroll{overflow:auto;border:1px solid var(--border);border-radius:10px}
+    .scroll{overflow:auto;border:1px solid var(--border);border-radius:10px;margin-top:12px}
     .charts{grid-template-columns:1fr;gap:16px}
-    button,select{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:#fff}
-    a{color:#0b62d6;text-decoration:none}
+    button{padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:14px}
+    a{color:#0b62d6;font-size:14px;text-decoration:none}
   </style>
 </head>
 <body>
 <div class="wrap">
   <h2>andesaware – live weather</h2>
-  <p style="margin:0 0 10px;color:#555">real-time feed from your station (si units)</p>
+  <div id="aw-updated"></div>
 
   <div id="aw-error" class="err"></div>
 
@@ -39,15 +39,8 @@
 
   <!-- CONTROLS -->
   <div class="ctrls">
-    <label for="aw-window">history window:</label>
-    <select id="aw-window">
-      <option value="6">6 h</option>
-      <option value="24" selected>24 h</option>
-      <option value="72">72 h</option>
-      <option value="168">7 d</option>
-    </select>
     <button id="aw-refresh" type="button">refresh</button>
-    <a id="aw-csv" href="#" download style="margin-left:auto">download csv</a>
+    <a id="aw-csv" href="#" download="aw001_history_24h.csv" style="margin-left:auto">download csv</a>
   </div>
 
   <!-- CHARTS -->
@@ -58,7 +51,7 @@
   </div>
 
   <!-- TABLE -->
-  <h3 style="margin:16px 0 8px">history</h3>
+  <h3 style="margin:18px 0 8px">last 24 hours</h3>
   <div class="scroll">
     <table id="aw-table">
       <thead>
@@ -90,81 +83,62 @@
 
 <script>
 const ORIGIN = 'https://api.andesaware.com';
+const HOURS = 24;
+
 const $err   = document.getElementById('aw-error');
 const $cards = document.getElementById('aw-cards');
-const $win   = document.getElementById('aw-window');
-const $csv   = document.getElementById('aw-csv');
 const $tbody = document.querySelector('#aw-table tbody');
+const $upd   = document.getElementById('aw-updated');
+const $csv   = document.getElementById('aw-csv');
 
 let cTemp, cWind, cRain;
 
-const fmtNum = (n, u='') => (n==null || isNaN(n)) ? '—' : `${Number(n).toFixed(1)}${u? ' '+u: ''}`;
+const fmt = (n,u='') => (n==null||isNaN(n)) ? '—' : Number(n).toFixed(1)+(u?' '+u:'');
 const tlabel = (ms) => luxon.DateTime.fromMillis(ms,{zone:'utc'}).toFormat('dd/LL/yyyy HH:mm');
-const api = async (path) => {
-  const r = await fetch(path, { cache: 'no-store' });
-  if (!r.ok) throw new Error(await r.text());
-  return r.json();
-};
+const api = async (path) => { const r=await fetch(path,{cache:'no-store'}); if(!r.ok) throw new Error(await r.text()); return r.json(); };
 
 function renderCards(latest) {
   const d = latest?.data || {};
-  const items = [
-    ['Temperature', fmtNum(d.outdoor_temp_c,'°C')],
-    ['Humidity', d.outdoor_humidity_pct ?? '—'],
-    ['Pressure (rel)', fmtNum(d.pressure_rel_hpa,'hPa')],
-    ['Pressure (abs)', fmtNum(d.pressure_abs_hpa,'hPa')],
-    ['Wind', (d.wind_speed_ms!=null||d.wind_dir_deg!=null) ? `${fmtNum(d.wind_speed_ms,'m/s')} @ ${d.wind_dir_deg??'—'}°` : '—'],
-    ['Gust', fmtNum(d.wind_gust_ms,'m/s')],
-    ['Rain rate', fmtNum(d.rain_rate_mm_hr,'mm/h')],
-    ['Hourly rain', fmtNum(d.rain_hourly_mm,'mm')],
-    ['Daily rain', fmtNum(d.rain_daily_mm,'mm')],
-    ['Solar', fmtNum(d.solar_wm2,'W/m²')],
-    ['UV index', d.uv_index ?? '—'],
-    // Indoor (may be null in WU mode)
-    ['Indoor temp', fmtNum(d.indoor_temp_c,'°C')],
-    ['Indoor RH', d.indoor_humidity_pct ?? '—']
+  const parts = [
+    ['Temperature', fmt(d.outdoor_temp_c,'°C')],
+    ['Humidity', d.outdoor_humidity_pct??'—'],
+    ['Pressure (rel)', fmt(d.pressure_rel_hpa,'hPa')],
+    ['Pressure (abs)', fmt(d.pressure_abs_hpa,'hPa')],
+    ['Wind', (d.wind_speed_ms!=null && d.wind_dir_deg!=null) ? `${fmt(d.wind_speed_ms,'m/s')} @ ${d.wind_dir_deg}°` : '—'],
+    ['Gust', fmt(d.wind_gust_ms,'m/s')],
+    ['Rain rate', fmt(d.rain_rate_mm_hr,'mm/h')],
+    ['Hourly rain', fmt(d.rain_hourly_mm,'mm')],
+    ['Daily rain', fmt(d.rain_daily_mm,'mm')],
+    ['Solar', fmt(d.solar_wm2,'W/m²')],
+    ['UV index', d.uv_index ?? '—']
   ];
-  $cards.innerHTML = items.map(([k,v]) => `
-    <div class="card">
-      <div class="k">${k}</div>
-      <div class="v">${v}</div>
-    </div>`).join('');
+  $cards.innerHTML = parts.map(([k,v]) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  $upd.textContent = latest?.ts_local ? `updated: ${latest.ts_local} UTC` : '';
 }
 
-function makeChart(ctx, label, series, yKey, opts={}) {
-  return new Chart(ctx, {
+function makeChart(ctx, label, series, key, extra={}) {
+  return new Chart(ctx,{
     type:'line',
-    data:{
-      labels: series.map(p => p.t),
-      datasets:[{
-        label, data: series.map(p => p[yKey]),
-        tension:0.2, pointRadius:0, spanGaps:true
-      }]
-    },
-    options:{
-      parsing:false, animation:false,
-      scales:{ x:{ type:'time', time:{ unit:'hour' }}, y:{ beginAtZero:false }},
-      plugins:{ legend:{ display:true }},
-      ...opts
-    }
+    data:{ labels:series.map(p=>p.t), datasets:[{label,data:series.map(p=>p[key]),tension:0.2,pointRadius:0,spanGaps:true}]},
+    options:{ parsing:false,animation:false,scales:{x:{type:'time',time:{unit:'hour'}}},plugins:{legend:{display:true}},...extra }
   });
 }
 
 function renderTable(series) {
-  $tbody.innerHTML = series.slice(-1000).map(r => `
+  $tbody.innerHTML = series.map(r=>`
     <tr>
       <td style="text-align:left">${tlabel(r.t)}</td>
-      <td>${fmtNum(r.outdoor_temp_c)}</td>
+      <td>${fmt(r.outdoor_temp_c)}</td>
       <td>${r.outdoor_humidity_pct ?? '—'}</td>
-      <td>${fmtNum(r.pressure_rel_hpa)}</td>
-      <td>${fmtNum(r.pressure_abs_hpa)}</td>
-      <td>${fmtNum(r.wind_speed_ms)}</td>
-      <td>${fmtNum(r.wind_gust_ms)}</td>
+      <td>${fmt(r.pressure_rel_hpa)}</td>
+      <td>${fmt(r.pressure_abs_hpa)}</td>
+      <td>${fmt(r.wind_speed_ms)}</td>
+      <td>${fmt(r.wind_gust_ms)}</td>
       <td>${r.wind_dir_deg ?? '—'}</td>
-      <td>${fmtNum(r.rain_rate_mm_hr)}</td>
-      <td>${fmtNum(r.rain_hourly_mm)}</td>
-      <td>${fmtNum(r.rain_daily_mm)}</td>
-      <td>${fmtNum(r.solar_wm2)}</td>
+      <td>${fmt(r.rain_rate_mm_hr)}</td>
+      <td>${fmt(r.rain_hourly_mm)}</td>
+      <td>${fmt(r.rain_daily_mm)}</td>
+      <td>${fmt(r.solar_wm2)}</td>
       <td>${r.uv_index ?? '—'}</td>
     </tr>`).join('');
 }
@@ -172,12 +146,11 @@ function renderTable(series) {
 async function refresh() {
   try {
     $err.style.display='none';
-    const hours = Number($win.value);
-    $csv.href = `${ORIGIN}/api/export.csv?hours=${hours}`;
+    $csv.href = `${ORIGIN}/api/export.csv?hours=${HOURS}`;
 
     const [latest, hist] = await Promise.all([
       api(`${ORIGIN}/api/latest`),
-      api(`${ORIGIN}/api/history?hours=${hours}`)
+      api(`${ORIGIN}/api/history?hours=${HOURS}`)
     ]);
 
     renderCards(latest);
@@ -187,20 +160,18 @@ async function refresh() {
     if (cWind) cWind.destroy();
     if (cRain) cRain.destroy();
 
-    cTemp = makeChart(document.getElementById('aw-chart-temp').getContext('2d'), 'Temp (°C)', hist, 'outdoor_temp_c');
-    cWind = makeChart(document.getElementById('aw-chart-wind').getContext('2d'), 'Wind (m/s)',  hist, 'wind_speed_ms');
-    cRain = makeChart(document.getElementById('aw-chart-rain').getContext('2d'), 'Rain rate (mm/h)', hist, 'rain_rate_mm_hr',
-      { scales:{ y:{ beginAtZero:true } } });
-  } catch (e) {
-    $err.textContent = 'error: ' + e.message;
+    cTemp = makeChart(document.getElementById('aw-chart-temp').getContext('2d'), 'Temperature (°C)', hist, 'outdoor_temp_c');
+    cWind = makeChart(document.getElementById('aw-chart-wind').getContext('2d'), 'Wind (m/s)', hist, 'wind_speed_ms');
+    cRain = makeChart(document.getElementById('aw-chart-rain').getContext('2d'), 'Rain rate (mm/h)', hist, 'rain_rate_mm_hr', {scales:{y:{beginAtZero:true}}});
+  } catch(e) {
+    $err.textContent = 'error: '+e.message;
     $err.style.display='block';
   }
 }
 
 document.getElementById('aw-refresh').addEventListener('click', refresh);
-document.getElementById('aw-window').addEventListener('change', refresh);
 refresh();
-setInterval(refresh, 60000); // refresh every minute
+setInterval(refresh, 60000);
 </script>
 </body>
 </html>

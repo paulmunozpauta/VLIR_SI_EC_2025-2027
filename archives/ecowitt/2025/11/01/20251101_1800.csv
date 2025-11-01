@@ -1,2 +1,0 @@
-ts,ts_local,ID,PASSWORD,action,dateutc,tempf,humidity,baromin,windspeedmph,windgustmph,winddir,rainin,dailyrainin,solarradiation,UV,dewptf,_proto
-"1762024472797","01/11/2025 19:14","TEST","123","updateraw","now","71","50","29.92","2.2","4.1","180","0.00","0.01","120","3","55","wu"

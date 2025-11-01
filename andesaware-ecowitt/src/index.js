@@ -197,6 +197,28 @@ export default {
       });
     }
 
+    // accepts GET/POST and SAVES the incoming fields
+    if (path === "/api/ingest") {
+      let params = {};
+      if (request.method === "GET") {
+        new URL(request.url).searchParams.forEach((v,k)=> params[k]=v);
+      } else if (request.method === "POST") {
+        const ct = request.headers.get("content-type") || "";
+        if (ct.includes("application/json")) params = await request.json().catch(()=>({}));
+        else if (ct.includes("application/x-www-form-urlencoded")) {
+          const body = new URLSearchParams(await request.text());
+          body.forEach((v,k)=> params[k]=v);
+        }
+      }
+      await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)").bind(Date.now(), JSON.stringify(params)).run();
+      return new Response(JSON.stringify({ ok:true, saved:true, params }), {
+        headers: { "content-type": "application/json", "Cache-Control":"no-store", ...cors }
+      });
+    }
+
+
+
+
     // --- CSV export (all rows). If you want a window, add ?hours=24
     if (path.startsWith("/api/export.csv")) {
       const hoursParam = url.searchParams.get("hours");

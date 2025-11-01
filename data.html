@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>AndesAware – Live Weather</title>
+  <title>AWARE-Live Data</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     :root{--border:#e5e7eb;--muted:#6b7280;--bg:#f9fafb}
@@ -29,7 +29,9 @@
 </head>
 <body>
 <div class="wrap">
-  <h2>andesaware – live weather</h2>
+  <h2>AWARE – live data</h2>
+  <h3>AWARE001 – Kessel-Lo (Belgium)</h3>
+
   <p style="margin:0 0 10px;color:#555">real-time feed from your station (si units)</p>
 
   <div id="aw-error" class="err"></div>
@@ -183,9 +185,14 @@ async function refresh() {
     renderCards(latest);
     renderTable(hist);
 
-    if (cTemp) cTemp.destroy();
-    if (cWind) cWind.destroy();
-    if (cRain) cRain.destroy();
+function zap(ch) {
+  if (ch && typeof ch.destroy === "function") {
+    try { ch.destroy(); } catch(e) {}
+  }
+}
+
+zap(cTemp); zap(cWind); zap(cRain);
+
 
     cTemp = makeChart(document.getElementById('aw-chart-temp').getContext('2d'), 'Temp (°C)', hist, 'outdoor_temp_c');
     cWind = makeChart(document.getElementById('aw-chart-wind').getContext('2d'), 'Wind (m/s)',  hist, 'wind_speed_ms');

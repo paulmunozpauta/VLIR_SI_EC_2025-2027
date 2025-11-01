@@ -101,6 +101,25 @@
       return r.json();
     }
 
+    let timer;
+    function schedule() {
+      clearInterval(timer);
+      timer = setInterval(loadAll, 60_000);  // every minute
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadAll(); // refresh when tab regains focus
+    });
+    async function loadAll() {
+      try {
+        const latest = await (await fetch(API('/api/latest'))).json();
+        const hist   = await (await fetch(API(`/api/history?hours=${hoursSel.value}`))).json();
+        render(latest, hist);
+        schedule(); // keep the loop alive
+      } catch(e) { showError(e); schedule(); }
+    }
+    loadAll();
+
+
     function renderCards(latest) {
       const d = latest?.data || {};
       $('temp').textContent  = fmt(d.outdoor_temp_c, '°C');

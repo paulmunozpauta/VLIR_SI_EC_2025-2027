@@ -12,6 +12,8 @@ export default {
       "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Vary": "Origin",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"
+
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
 

@@ -61,18 +61,120 @@ export default {
       return new Response("OK", { headers: cors });
     }
 
-    // --- helper for SI conversion
-    const toSI = (d) => ({
-      stationtype: d.stationtype ?? null,
-      temp_c: d.tempf != null ? (Number(d.tempf) - 32) * 5 / 9 : null,
-      rh: d.humidity != null ? Number(d.humidity) : null,
-      wind_ms: d.windspeedmph != null ? Number(d.windspeedmph) * 0.44704 : null,
-      wind_dir_deg: d.winddir != null ? Number(d.winddir) : null,
-      rain_mm_hr: d.rainratein != null ? Number(d.rainratein) * 25.4 : null,
-      solar_wm2: d.solarradiation != null ? Number(d.solarradiation) : null,
-      uv: d.uv != null ? Number(d.uv) : null,
-      pressure_hpa: d.baromabsin != null ? Number(d.baromabsin) * 33.8639 : null
-    });
+// ---- helpers ----
+const num = (v) => (v == null || v === "" ? null : Number(v));
+const pick = (o, ...keys) => {
+  for (const k of keys) if (o[k] != null) return o[k];
+  return null;
+};
+// Magnus dew point (°C) from temp °C and RH % (good enough for UI)
+const dewpointC = (tC, rh) => {
+  if (tC == null || rh == null) return null;
+  const a = 17.62, b = 243.12;
+  const gamma = (a * tC) / (b + tC) + Math.log(rh / 100);
+  return (b * gamma) / (a - gamma);
+};
+
+// ---- BIG mapper: Ecowitt payload -> rich SI structure
+const toSI = (d) => {
+  // outdoor
+  const tempOutF = num(pick(d, "tempf", "outtempf"));
+  const rhOut = num(pick(d, "humidity", "outhumidity"));
+  const feelsOutF = num(pick(d, "feelslikef", "heatindexf", "windchillf"));
+  const dewOutF = num(pick(d, "dewpointf"));
+  const tempOutC = tempOutF != null ? (tempOutF - 32) * 5/9 : null;
+  const feelsOutC = feelsOutF != null ? (feelsOutF - 32) * 5/9 : null;
+  const dewOutC = dewOutF != null ? (dewOutF - 32) * 5/9 : dewpointC(tempOutC, rhOut);
+
+  // indoor
+  const tempInF  = num(pick(d, "indoortempf", "tempinf"));
+  const rhIn     = num(pick(d, "indoorhumidity", "humidityin"));
+  const feelsInF = num(pick(d, "indoorfeelslikef")); // some FW send this
+  const dewInF   = num(pick(d, "indoordewpointf", "dewpointinf"));
+  const tempInC  = tempInF != null ? (tempInF - 32) * 5/9 : null;
+  const feelsInC = feelsInF != null ? (feelsInF - 32) * 5/9 : null;
+  const dewInC   = dewInF != null ? (dewInF - 32) * 5/9 : dewpointC(tempInC, rhIn);
+
+  // solar & UV
+  const solarWm2 = num(pick(d, "solarradiation"));
+  const uvIdx    = num(pick(d, "uv"));
+
+  // rainfall (in -> mm) / rates (in/hr -> mm/hr)
+  const in2mm   = (x) => (x == null ? null : Number(x) * 25.4);
+  const rate2mm = (x) => (x == null ? null : Number(x) * 25.4);
+  const rainRate     = rate2mm(pick(d, "rainratein"));
+  const rainDaily    = in2mm(pick(d, "dailyrainin"));
+  const rainEvent    = in2mm(pick(d, "eventrainin"));
+  const rainHourly   = in2mm(pick(d, "hourlyrainin"));
+  const rain24h      = in2mm(pick(d, "24hourrainin", "rain24h_in", "rain24hin"));
+  const rainWeekly   = in2mm(pick(d, "weeklyrainin"));
+  const rainMonthly  = in2mm(pick(d, "monthlyrainin"));
+  const rainYearly   = in2mm(pick(d, "yearlyrainin"));
+
+  // wind (mph -> m/s)
+  const mph2ms = (x) => (x == null ? null : Number(x) * 0.44704);
+  const windMs     = mph2ms(pick(d, "windspeedmph"));
+  const gustMs     = mph2ms(pick(d, "windgustmph"));
+  const windDir    = num(pick(d, "winddir"));
+  const windDir10m = num(pick(d, "winddir_avg10m", "windavgdir", "winddir10m"));
+
+  // pressure (prefer hPa native; else inHg -> hPa)
+  const inHg2hPa = (x) => (x == null ? null : Number(x) * 33.8639);
+  const presRel  = num(pick(d, "baromrelhpa"));
+  const presAbs  = num(pick(d, "baromabshpa"));
+  const presRelhPa = presRel != null ? presRel : inHg2hPa(pick(d, "baromrelin"));
+  const presAbshPa = presAbs != null ? presAbs : inHg2hPa(pick(d, "baromabsin"));
+
+  // device
+  const heapBytes = num(pick(d, "heap"));
+  const runtimeS  = num(pick(d, "runtime"));
+
+  return {
+    // outdoor
+    outdoor_temp_c: tempOutC,
+    outdoor_feels_like_c: feelsOutC,
+    outdoor_dewpoint_c: dewOutC,
+    outdoor_humidity_pct: rhOut,
+
+    // indoor
+    indoor_temp_c: tempInC,
+    indoor_feels_like_c: feelsInC,
+    indoor_dewpoint_c: dewInC,
+    indoor_humidity_pct: rhIn,
+
+    // solar & UV
+    solar_wm2: solarWm2,
+    uv_index: uvIdx,
+
+    // rainfall
+    rain_rate_mm_hr: rainRate,
+    rain_daily_mm:   rainDaily,
+    rain_event_mm:   rainEvent,
+    rain_hourly_mm:  rainHourly,
+    rain_24h_mm:     rain24h,
+    rain_weekly_mm:  rainWeekly,
+    rain_monthly_mm: rainMonthly,
+    rain_yearly_mm:  rainYearly,
+
+    // wind
+    wind_speed_ms: windMs,
+    wind_gust_ms:  gustMs,
+    wind_dir_deg:  windDir,
+    wind_dir_avg10m_deg: windDir10m,
+
+    // pressure
+    pressure_rel_hpa: presRelhPa,
+    pressure_abs_hpa: presAbshPa,
+
+    // device
+    heap_bytes: heapBytes,
+    runtime_s:  runtimeS,
+
+    // raw station type for reference
+    stationtype: d.stationtype ?? null
+  };
+};
+
 
     // --- /api/latest (SI)
     if (path === "/api/latest") {

@@ -1,42 +1,36 @@
-export default {
+var __defProp = Object.defineProperty;
+var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
+
+// src/index.js
+var index_default = {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
-
-    // CORS
-    const ALLOW = new Set(["https://andesaware.com", "https://www.andesaware.com"]);
+    const ALLOW = /* @__PURE__ */ new Set(["https://andesaware.com", "https://www.andesaware.com"]);
     const origin = request.headers.get("origin");
     const allowOrigin = ALLOW.has(origin) ? origin : "https://andesaware.com";
     const cors = {
       "Access-Control-Allow-Origin": allowOrigin,
       "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
-      "Vary": "Origin",
+      "Vary": "Origin"
     };
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
-
-    // helper: format timestamp to DD/MM/YYYY HH:mm (UTC)
-    const fmt = (ms) => {
+    const fmt2 = /* @__PURE__ */ __name((ms) => {
       const d = new Date(ms);
-      const pad = (n) => String(n).padStart(2, "0");
+      const pad = /* @__PURE__ */ __name((n) => String(n).padStart(2, "0"), "pad");
       return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
-    };
-
-    // landing
+    }, "fmt");
     if (path === "/") {
       return new Response("andesaware api ready", {
         headers: { "content-type": "text/plain; charset=utf-8", ...cors }
       });
     }
-
-    // save raw data
-    const save = async (data) => {
+    const save = /* @__PURE__ */ __name(async (data) => {
       const ts = Date.now();
       await env.DB.prepare("INSERT INTO samples (ts, payload) VALUES (?, ?)").bind(ts, JSON.stringify(data)).run();
       return { ts, data };
-    };
-
-    // receiver
+    }, "save");
     if (path === "/api/ecowitt") {
       let params = {};
       if (request.method === "GET") {
@@ -58,33 +52,28 @@ export default {
       await save(params);
       return new Response("OK", { headers: cors });
     }
-
-    // ---- helpers ----
-    const num = (v) => (v == null || v === "" ? null : Number(v));
-    const pick = (o, ...keys) => {
+    const num = /* @__PURE__ */ __name((v) => v == null || v === "" ? null : Number(v), "num");
+    const pick = /* @__PURE__ */ __name((o, ...keys) => {
       for (const k of keys) if (o[k] != null) return o[k];
       return null;
-    };
-    const dewpointC = (tC, rh) => {
+    }, "pick");
+    const dewpointC = /* @__PURE__ */ __name((tC, rh) => {
       if (tC == null || rh == null) return null;
       const a = 17.62, b = 243.12;
-      const gamma = (a * tC) / (b + tC) + Math.log(rh / 100);
-      return (b * gamma) / (a - gamma);
-    };
-
-    const toSI = (d) => {
+      const gamma = a * tC / (b + tC) + Math.log(rh / 100);
+      return b * gamma / (a - gamma);
+    }, "dewpointC");
+    const toSI2 = /* @__PURE__ */ __name((d) => {
       const tempOutF = num(pick(d, "tempf", "outtempf"));
       const rhOut = num(pick(d, "humidity", "outhumidity"));
       const feelsOutF = num(pick(d, "feelslikef", "heatindexf", "windchillf"));
       const dewOutF = num(pick(d, "dewpointf"));
-      const tempOutC = tempOutF != null ? (tempOutF - 32) * 5/9 : null;
-      const feelsOutC = feelsOutF != null ? (feelsOutF - 32) * 5/9 : null;
-      const dewOutC = dewOutF != null ? (dewOutF - 32) * 5/9 : dewpointC(tempOutC, rhOut);
-
+      const tempOutC = tempOutF != null ? (tempOutF - 32) * 5 / 9 : null;
+      const feelsOutC = feelsOutF != null ? (feelsOutF - 32) * 5 / 9 : null;
+      const dewOutC = dewOutF != null ? (dewOutF - 32) * 5 / 9 : dewpointC(tempOutC, rhOut);
       const tempInF = num(pick(d, "indoortempf", "tempinf"));
       const rhIn = num(pick(d, "indoorhumidity", "humidityin"));
-      const tempInC = tempInF != null ? (tempInF - 32) * 5/9 : null;
-
+      const tempInC = tempInF != null ? (tempInF - 32) * 5 / 9 : null;
       return {
         outdoor_temp_c: tempOutC,
         outdoor_feels_like_c: feelsOutC,
@@ -100,45 +89,36 @@ export default {
         pressure_abs_hpa: num(pick(d, "baromabshpa")),
         stationtype: d.stationtype ?? null
       };
-    };
-
-    // --- latest SI
+    }, "toSI");
     if (path === "/api/latest") {
       const row = await env.DB.prepare("SELECT ts, payload FROM samples ORDER BY id DESC LIMIT 1").first();
-      const out = row ? { ts: row.ts, ts_local: fmt(row.ts), data: toSI(JSON.parse(row.payload || "{}")) } : {};
+      const out = row ? { ts: row.ts, ts_local: fmt2(row.ts), data: toSI2(JSON.parse(row.payload || "{}")) } : {};
       return new Response(JSON.stringify(out), { headers: { "content-type": "application/json", ...cors } });
     }
-
-    // --- latest raw
     if (path === "/api/latest_raw") {
       const row = await env.DB.prepare("SELECT ts, payload FROM samples ORDER BY id DESC LIMIT 1").first();
-      const out = row ? { ts: row.ts, ts_local: fmt(row.ts), payload: JSON.parse(row.payload || "{}") } : {};
+      const out = row ? { ts: row.ts, ts_local: fmt2(row.ts), payload: JSON.parse(row.payload || "{}") } : {};
       return new Response(JSON.stringify(out), { headers: { "content-type": "application/json", ...cors } });
     }
-
-    // --- export.csv
     if (path === "/api/export.csv") {
       const rows = await env.DB.prepare("SELECT ts, payload FROM samples ORDER BY ts ASC").all();
-      const samples = rows.results.map(r => {
+      const samples = rows.results.map((r) => {
         const raw = JSON.parse(r.payload || "{}");
-        const si = toSI(raw);
+        const si = toSI2(raw);
         return {
           ts: r.ts,
-          ts_local: fmt(r.ts),
+          ts_local: fmt2(r.ts),
           ...si,
           ...raw,
           raw_json: JSON.stringify(raw)
         };
       });
-
       const keys = Array.from(samples.reduce((s, o) => {
-        Object.keys(o).forEach(k => s.add(k));
+        Object.keys(o).forEach((k) => s.add(k));
         return s;
-      }, new Set(["ts", "ts_local"])));
-
-      const esc = v => (v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, "."));
-      const csv = [keys.join(","), ...samples.map(s => keys.map(k => `"${esc(s[k])}"`).join(","))].join("\n");
-
+      }, /* @__PURE__ */ new Set(["ts", "ts_local"])));
+      const esc = /* @__PURE__ */ __name((v) => v == null ? "" : String(v).replace(/"/g, '""').replace(/,/g, "."), "esc");
+      const csv = [keys.join(","), ...samples.map((s) => keys.map((k) => `"${esc(s[k])}"`).join(","))].join("\n");
       return new Response(csv, {
         headers: {
           "content-type": "text/csv; charset=utf-8",
@@ -147,21 +127,16 @@ export default {
         }
       });
     }
-
-    // fallback
     return new Response("not found", { status: 404, headers: cors });
   },
-
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(appendToGitHubCSV(env).catch(e => console.error("archive error", e)));
+    ctx.waitUntil(appendToGitHubCSV(env).catch((e) => console.error("archive error", e)));
   }
 };
-
 async function appendToGitHubCSV(env) {
   const rows = await env.DB.prepare("SELECT ts, payload FROM samples ORDER BY ts ASC").all();
   if (!rows.results.length) return;
-
-  const samples = rows.results.map(r => {
+  const samples = rows.results.map((r) => {
     const raw = JSON.parse(r.payload || "{}");
     const si = toSI(raw);
     return {
@@ -172,11 +147,9 @@ async function appendToGitHubCSV(env) {
       raw_json: JSON.stringify(raw)
     };
   });
-
   const keys = Object.keys(samples[0]);
-  const newLines = samples.map(s => keys.map(k => `"${(s[k] ?? "").toString().replace(/"/g, '""').replace(/,/g, ".")}"`).join(","));
+  const newLines = samples.map((s) => keys.map((k) => `"${(s[k] ?? "").toString().replace(/"/g, '""').replace(/,/g, ".")}"`).join(","));
   const newCSVChunk = newLines.join("\n") + "\n";
-
   const repo = env.GH_REPO;
   const branch = env.GH_BRANCH || "main";
   const filepath = "archives/ecowitt/ecowitt_history.csv";
@@ -186,8 +159,6 @@ async function appendToGitHubCSV(env) {
     "Accept": "application/vnd.github+json",
     "User-Agent": "andesaware-ecowitt-archiver"
   };
-
-  // fetch current file
   const get = await fetch(`${api}?ref=${branch}`, { headers });
   let sha, oldContent = "";
   if (get.status === 200) {
@@ -195,15 +166,13 @@ async function appendToGitHubCSV(env) {
     sha = json.sha;
     oldContent = atob(json.content.replace(/\n/g, ""));
   }
-
   const contentB64 = btoa(unescape(encodeURIComponent(oldContent + newCSVChunk)));
   const body = {
     message: `update: ${filepath}`,
     content: contentB64,
     branch,
-    ...(sha ? { sha } : {})
+    ...sha ? { sha } : {}
   };
-
   const put = await fetch(api, { method: "PUT", headers, body: JSON.stringify(body) });
   if (!put.ok) {
     const txt = await put.text();
@@ -211,3 +180,8 @@ async function appendToGitHubCSV(env) {
   }
   return { ok: true, message: "appended", path: filepath };
 }
+__name(appendToGitHubCSV, "appendToGitHubCSV");
+export {
+  index_default as default
+};
+//# sourceMappingURL=index.js.map

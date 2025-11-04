@@ -15,7 +15,7 @@ export default {
       const j = await env.WEATHER_KV.get("latest.json");
       const last = j ? (() => { try { return JSON.parse(j)?.received_at; } catch { return null; } })() : null;
       const age = last ? Math.round((Date.now() - Date.parse(last)) / 1000) : null;
-      const ok = age != null && age < 600; // 10 minutes tolerance
+      const ok = age != null && age < 600;
       return new Response(ok ? `OK: last=${last} age=${age}s` : "STALE", { status: ok ? 200 : 503, headers: noStore(req) });
     }
 
@@ -54,7 +54,7 @@ export default {
         
         await env.WEATHER_KV.put("latest.json", payload);
         
-        // Append to CSV in GitHub in datasets/AW001.csv every 5 minutes
+        // Append to CSV in GitHub
         await appendToGitHubCSV(data.data, timestamp, env);
         
         console.log("5-minute data stored successfully", { 
@@ -71,9 +71,11 @@ export default {
   }
 };
 
-// Function to append data to CSV in GitHub in datasets/AW001.csv
+// Function to append data to CSV in GitHub
 async function appendToGitHubCSV(weatherData, timestamp, env) {
   try {
+    console.log("=== GITHUB CSV DEBUG START ===");
+    
     // Extract main weather parameters
     const outdoor = weatherData.outdoor || {};
     const wind = weatherData.wind || {};
@@ -101,56 +103,96 @@ async function appendToGitHubCSV(weatherData, timestamp, env) {
       indoor.humidity?.value || ''
     ].join(',');
     
-    // FIXED: Correct GitHub API URL - removed duplicate username
-    const csvUrl = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/datasets/AW001.csv`;
+    // GitHub configuration
+    const repo = env.GITHUB_REPO; // Should be "paulmunozpauta/VLIR_SI_EC_2025-2027"
+    const csvUrl = `https://api.github.com/repos/${repo}/contents/datasets/AW001.csv`;
+    
+    console.log("GitHub Config:", {
+      repo: repo,
+      fullUrl: csvUrl,
+      tokenExists: !!env.GITHUB_TOKEN,
+      tokenLength: env.GITHUB_TOKEN ? env.GITHUB_TOKEN.length : 0
+    });
+    
     const headers = {
       'Authorization': `token ${env.GITHUB_TOKEN}`,
       'User-Agent': 'Cloudflare-Worker',
       'Accept': 'application/vnd.github.v3+json'
     };
     
+    // Test 1: Check if repository exists and is accessible
+    console.log("Testing repository access...");
+    const repoTestUrl = `https://api.github.com/repos/${repo}`;
+    const repoResponse = await fetch(repoTestUrl, { headers });
+    console.log("Repository test - Status:", repoResponse.status);
+    
+    if (!repoResponse.ok) {
+      const repoError = await repoResponse.text();
+      console.log("❌ Repository access failed:", repoError);
+      return;
+    }
+    console.log("✅ Repository access successful");
+    
+    // Test 2: Check if datasets folder exists or create it
+    console.log("Checking datasets folder...");
+    const datasetsUrl = `https://api.github.com/repos/${repo}/contents/datasets`;
+    const datasetsResponse = await fetch(datasetsUrl, { headers });
+    console.log("Datasets folder check - Status:", datasetsResponse.status);
+    
     let existingContent = '';
     let sha = null;
     
-    try {
-      const existingFile = await fetch(csvUrl, { headers });
-      if (existingFile.ok) {
-        const fileData = await existingFile.json();
-        existingContent = atob(fileData.content); // Decode base64
-        sha = fileData.sha;
-      }
-    } catch (e) {
-      console.log("No existing CSV file or error reading:", e.message);
+    // Test 3: Check if CSV file exists
+    console.log("Checking if AW001.csv exists...");
+    const fileResponse = await fetch(csvUrl, { headers });
+    console.log("File check - Status:", fileResponse.status);
+    
+    if (fileResponse.ok) {
+      const fileData = await fileResponse.json();
+      existingContent = atob(fileData.content);
+      sha = fileData.sha;
+      console.log("✅ Found existing CSV file, rows:", existingContent.split('\n').length - 1);
+    } else if (fileResponse.status === 404) {
+      console.log("📝 CSV file doesn't exist, will create new file");
+    } else {
+      const errorText = await fileResponse.text();
+      console.log("❌ File check error:", fileResponse.status, errorText);
+      return;
     }
     
     // Create CSV header if file doesn't exist
     if (!existingContent) {
       existingContent = 'timestamp,temperature_f,humidity_pct,dew_point_f,feels_like_f,wind_speed_mph,wind_gust_mph,wind_direction_deg,pressure_inhg,rain_rate_inhr,daily_rain_in,solar_wm2,uv_index,indoor_temp_f,indoor_humidity_pct\n';
+      console.log("📄 Created CSV headers");
     }
     
     // Append new row
     const newContent = existingContent + csvRow + '\n';
     
-    // Update file in GitHub
+    console.log("Updating file on GitHub...");
     const updateResponse = await fetch(csvUrl, {
       method: 'PUT',
       headers,
       body: JSON.stringify({
         message: `Add 5-minute weather data: ${timestamp}`,
-        content: btoa(newContent), // Encode to base64
+        content: btoa(newContent),
         sha: sha
       })
     });
     
+    console.log("GitHub update response - Status:", updateResponse.status);
+    
     if (updateResponse.ok) {
-      console.log("5-minute CSV data appended to GitHub successfully");
+      console.log("✅ CSV data appended to GitHub successfully");
     } else {
       const error = await updateResponse.text();
-      console.log("Failed to update GitHub CSV:", error);
+      console.log("❌ Failed to update GitHub CSV. Status:", updateResponse.status, "Error:", error);
     }
     
+    console.log("=== GITHUB CSV DEBUG END ===");
+    
   } catch (error) {
-    console.log("Error appending to GitHub CSV:", error.message);
+    console.log("💥 Error in appendToGitHubCSV:", error.message, error.stack);
   }
 }
 

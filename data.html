@@ -102,7 +102,14 @@
 <script>
 const ENDPOINT = "https://api.andesaware.com/weatherstation/latest";
 const REFRESH_MS = 300000;
-const CSV_URL = "https://raw.githubusercontent.com/your-username/your-repo/main/contents/datasets/AW001.csv";
+
+// Try different possible GitHub URL formats
+const CSV_URLS = [
+  "https://raw.githubusercontent.com/your-username/your-repo/main/contents/datasets/AW001.csv",
+  "https://raw.githubusercontent.com/your-username/your-repo/main/datasets/AW001.csv",
+  "https://raw.githubusercontent.com/your-username/your-repo/master/contents/datasets/AW001.csv",
+  "https://raw.githubusercontent.com/your-username/your-repo/master/datasets/AW001.csv"
+];
 
 function fToC(f){ return (f - 32) * 5/9; }
 function mphToMs(m){ return m * 0.44704; }
@@ -241,26 +248,50 @@ function populateTable(data) {
   tableInfo.textContent = `Showing last ${displayData.length} records from AW001.csv`;
 }
 
+// Try multiple URL formats to find the correct one
+async function tryCSVUrls(urls) {
+  for (const url of urls) {
+    try {
+      const tableInfo = document.getElementById('table-info');
+      tableInfo.textContent = `Trying: ${url}`;
+      
+      const response = await fetch(url);
+      if (response.ok) {
+        const csvText = await response.text();
+        const csvData = parseCSV(csvText);
+        populateTable(csvData);
+        tableInfo.textContent = `✓ Loaded ${csvData.length} records from AW001.csv`;
+        return true;
+      }
+    } catch (error) {
+      console.log(`Failed with URL: ${url}`, error);
+      continue;
+    }
+  }
+  return false;
+}
+
 // Fetch CSV data from GitHub
 async function loadCSVData() {
-  try {
-    const tableInfo = document.getElementById('table-info');
-    tableInfo.textContent = 'Fetching data from GitHub...';
-    
-    const response = await fetch(CSV_URL);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    const csvText = await response.text();
-    const csvData = parseCSV(csvText);
-    
-    populateTable(csvData);
-    
-  } catch (error) {
-    console.error('Error loading CSV:', error);
-    document.getElementById('table-info').textContent = `Error loading data: ${error.message}`;
-    document.getElementById('table-info').className = "muted err";
+  const tableInfo = document.getElementById('table-info');
+  
+  // Replace with your actual GitHub username and repository name
+  const yourUsername = 'YOUR_GITHUB_USERNAME'; // Replace this
+  const yourRepo = 'YOUR_REPOSITORY_NAME'; // Replace this
+  
+  // Generate URLs with your actual username and repo
+  const customUrls = [
+    `https://raw.githubusercontent.com/${yourUsername}/${yourRepo}/main/contents/datasets/AW001.csv`,
+    `https://raw.githubusercontent.com/${yourUsername}/${yourRepo}/main/datasets/AW001.csv`,
+    `https://raw.githubusercontent.com/${yourUsername}/${yourRepo}/master/contents/datasets/AW001.csv`,
+    `https://raw.githubusercontent.com/${yourUsername}/${yourRepo}/master/datasets/AW001.csv`
+  ];
+  
+  const success = await tryCSVUrls(customUrls);
+  
+  if (!success) {
+    tableInfo.textContent = 'Error: Could not find AW001.csv. Please check your GitHub URL.';
+    tableInfo.className = "muted err";
   }
 }
 

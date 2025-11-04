@@ -3,7 +3,6 @@ export default {
     const url = new URL(req.url);
     const path = url.pathname;
 
-    // log every single request up front
     console.log("start", { path, method: req.method });
 
     // CORS
@@ -14,7 +13,7 @@ export default {
     // human status
     if (path === "/weatherstation/status") {
       const j = await env.WEATHER_KV.get("latest.json");
-      const last = j ? (() => { try { return JSON.parse(j)?.wu_raw?.received_at; } catch { return null; } })() : null;
+      const last = j ? (() => { try { return JSON.parse(j)?.received_at; } catch { return null; } })() : null;
       const age = last ? Math.round((Date.now() - Date.parse(last)) / 1000) : null;
       const ok = age != null && age < 180;
       return new Response(ok ? `OK: last=${last} age=${age}s` : "STALE", { status: ok ? 200 : 503, headers: noStore(req) });
@@ -28,55 +27,52 @@ export default {
       return new Response(j, { status: 200, headers: noStoreJson(req) });
     }
 
-    // accept all WU path variants
-    const isWU =
+    // accept Ecowitt data
+    const isEcowitt =
       path === "/weatherstation/updateweatherstation" ||
       path === "/weatherstation/updateweatherstation/" ||
       path === "/weatherstation/updateweatherstation.php" ||
       path === "/weatherstation/updateweatherstation.php/";
 
-    if (!isWU) {
+    if (!isEcowitt) {
       console.log("unknown_path", { path, method: req.method });
       return new Response("not found", { status: 404, headers: noStore(req) });
     }
 
-    // collect params
-    let params = Object.fromEntries(url.searchParams.entries());
+    // Ecowitt protocol - usually POST with JSON body
+    let params = {};
+    
     if (req.method === "POST") {
       const ct = (req.headers.get("content-type") || "").toLowerCase();
-      if (ct.includes("application/x-www-form-urlencoded")) {
+      if (ct.includes("application/json")) {
+        try { 
+          params = await req.json();
+        } catch (e) {
+          console.log("json_parse_error", { error: e.message });
+        }
+      } else if (ct.includes("application/x-www-form-urlencoded")) {
         params = Object.fromEntries(new URLSearchParams(await req.text()).entries());
-      } else if (ct.includes("application/json")) {
-        try { params = { ...params, ...(await req.json()) }; } catch {}
       }
-    } else if (req.method !== "GET") {
+    } else if (req.method === "GET") {
+      params = Object.fromEntries(url.searchParams.entries());
+    } else {
       return new Response("method not allowed", { status: 405, headers: noStore(req) });
     }
 
-    // auth
-    const id  = params.ID || "";
-    const key = params.PASSWORD || "";
-    const okId  = id === env.STATION_ID;
-    const okKey = key === env.STATION_KEY;
-    console.log("auth_check", { id, okId, keyProvided: !!key, okKey });
+    console.log("received_data", { method: req.method, keys: Object.keys(params).length });
 
-    if (!okId || !okKey) {
-      return new Response("unauthorized", { status: 403, headers: noStore(req) });
-    }
-
-    // write
+    // For Ecowitt protocol, you might want different authentication
+    // For now, let's accept all data and log it
     params.received_at = new Date().toISOString();
-    const payload = JSON.stringify({ wu_raw: params }, null, 2);
+    const payload = JSON.stringify(params, null, 2);
+    
     await env.WEATHER_KV.put("latest.json", payload);
     console.log("kv_written", { at: params.received_at, keys: Object.keys(params).length });
 
-    // WU requires this exact body
+    // Ecowitt expects simple response
     return new Response("success", { status: 200, headers: noStore(req) });
   }
 };
-
-// optional if you had a cron trigger
-export const scheduled = async () => {};
 
 function corsHeaders(req) {
   const origin = req.headers.get("origin") || "";

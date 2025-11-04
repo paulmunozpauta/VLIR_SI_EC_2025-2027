@@ -258,7 +258,7 @@ async function loadCSVData() {
     const csvData = parseCSV(csvText);
     
     populateTable(csvData);
-    tableInfo.textContent = `✓ Loaded ${csvData.length} records from AW001.csv`;
+    tableInfo.textContent = `✓ Loaded ${csvData.length} records`;
     
   } catch (error) {
     console.error('Error loading CSV:', error);

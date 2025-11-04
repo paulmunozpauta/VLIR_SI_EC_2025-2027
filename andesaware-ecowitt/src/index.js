@@ -101,8 +101,8 @@ async function appendToGitHubCSV(weatherData, timestamp, env) {
       indoor.humidity?.value || ''
     ].join(',');
     
-    // GitHub API URL for datasets/AW001.csv in your website repo
-    const csvUrl = `https://api.github.com/repos/paulmunozpauta/${env.GITHUB_REPO}/contents/datasets/AW001.csv`;
+    // FIXED: Correct GitHub API URL - removed duplicate username
+    const csvUrl = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/datasets/AW001.csv`;
     const headers = {
       'Authorization': `token ${env.GITHUB_TOKEN}`,
       'User-Agent': 'Cloudflare-Worker',

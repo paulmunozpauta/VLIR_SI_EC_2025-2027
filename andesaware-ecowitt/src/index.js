@@ -102,7 +102,7 @@ async function appendToGitHubCSV(weatherData, timestamp, env) {
     ].join(',');
     
     // GitHub API URL for datasets/AW001.csv in your website repo
-    const csvUrl = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/datasets/AW001.csv`;
+    const csvUrl = `https://api.github.com/repos/paulmunozpauta/${env.GITHUB_REPO}/contents/datasets/AW001.csv`;
     const headers = {
       'Authorization': `token ${env.GITHUB_TOKEN}`,
       'User-Agent': 'Cloudflare-Worker',

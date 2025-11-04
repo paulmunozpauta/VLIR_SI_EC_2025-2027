@@ -3,9 +3,7 @@ main = "src/index.js"
 compatibility_date = "2025-01-01"
 
 # have the worker catch exactly the path your console calls
-routes = [
-  { pattern = "api.andesaware.com/weatherstation/*", zone_name = "andesaware.com" }
-]
+routes = [{ pattern = "api.andesaware.com/weatherstation/*", zone_name = "andesaware.com" }]
 
 
 

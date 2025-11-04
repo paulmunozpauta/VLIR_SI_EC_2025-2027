@@ -15,7 +15,7 @@ export default {
       const j = await env.WEATHER_KV.get("latest.json");
       const last = j ? (() => { try { return JSON.parse(j)?.received_at; } catch { return null; } })() : null;
       const age = last ? Math.round((Date.now() - Date.parse(last)) / 1000) : null;
-      const ok = age != null && age < 180;
+      const ok = age != null && age < 300; // 5 minutes
       return new Response(ok ? `OK: last=${last} age=${age}s` : "STALE", { status: ok ? 200 : 503, headers: noStore(req) });
     }
 
@@ -27,50 +27,45 @@ export default {
       return new Response(j, { status: 200, headers: noStoreJson(req) });
     }
 
-    // accept Ecowitt data
-    const isEcowitt =
-      path === "/weatherstation/updateweatherstation" ||
-      path === "/weatherstation/updateweatherstation/" ||
-      path === "/weatherstation/updateweatherstation.php" ||
-      path === "/weatherstation/updateweatherstation.php/";
+    return new Response("not found", { status: 404, headers: noStore(req) });
+  },
 
-    if (!isEcowitt) {
-      console.log("unknown_path", { path, method: req.method });
-      return new Response("not found", { status: 404, headers: noStore(req) });
-    }
-
-    // Ecowitt protocol - usually POST with JSON body
-    let params = {};
+  // Scheduled function to fetch from Ecowitt API every 2 minutes
+  async scheduled(event, env, ctx) {
+    console.log("Fetching data from Ecowitt API...");
     
-    if (req.method === "POST") {
-      const ct = (req.headers.get("content-type") || "").toLowerCase();
-      if (ct.includes("application/json")) {
-        try { 
-          params = await req.json();
-        } catch (e) {
-          console.log("json_parse_error", { error: e.message });
-        }
-      } else if (ct.includes("application/x-www-form-urlencoded")) {
-        params = Object.fromEntries(new URLSearchParams(await req.text()).entries());
+    try {
+      // Replace YOUR_DEVICE_MAC with your actual MAC address
+      const mac = "EC:64:C9:F2:AC:79"; // ← CHANGE THIS to your station's MAC
+      
+      const apiUrl = `https://api.ecowitt.net/api/v3/device/real_time?application_key=31B06CAD6518B81F808312D91B55973A&api_key=be6a3fde-4a04-40e0-8452-49ef32af65a0&mac=${mac}&call_back=all&temp_unitid=2&pressure_unitid=4&wind_speed_unitid=9&rainfall_unitid=13`;
+      
+      console.log("Calling Ecowitt API:", apiUrl);
+      
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      
+      console.log("Ecowitt API response:", { code: data.code, msg: data.msg });
+      
+      if (data.code === 0) {
+        // Success - store the data
+        const payload = JSON.stringify({
+          ecowitt_api: data.data,
+          received_at: new Date().toISOString(),
+          api_timestamp: data.time
+        }, null, 2);
+        
+        await env.WEATHER_KV.put("latest.json", payload);
+        console.log("Ecowitt API data stored successfully", { 
+          outdoor_temp: data.data.outdoor?.temperature?.value,
+          humidity: data.data.outdoor?.humidity?.value 
+        });
+      } else {
+        console.log("Ecowitt API error:", data.msg, data.code);
       }
-    } else if (req.method === "GET") {
-      params = Object.fromEntries(url.searchParams.entries());
-    } else {
-      return new Response("method not allowed", { status: 405, headers: noStore(req) });
+    } catch (error) {
+      console.log("Ecowitt API fetch failed:", error.message);
     }
-
-    console.log("received_data", { method: req.method, keys: Object.keys(params).length });
-
-    // For Ecowitt protocol, you might want different authentication
-    // For now, let's accept all data and log it
-    params.received_at = new Date().toISOString();
-    const payload = JSON.stringify(params, null, 2);
-    
-    await env.WEATHER_KV.put("latest.json", payload);
-    console.log("kv_written", { at: params.received_at, keys: Object.keys(params).length });
-
-    // Ecowitt expects simple response
-    return new Response("success", { status: 200, headers: noStore(req) });
   }
 };
 

@@ -2,12 +2,11 @@ name = "andesaware-ecowitt"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
-# have the worker catch exactly the path your console calls
 routes = [{ pattern = "api.andesaware.com/weatherstation/*", zone_name = "andesaware.com" }]
 
-
-
-# kv to store latest.json  (replace id below after creation)
 [[kv_namespaces]]
 binding = "WEATHER_KV"
 id = "ab86dc440d124205add2197b83bfcefd"
+
+[triggers]
+crons = ["*/2 * * * *"]  # Every 2 minutes

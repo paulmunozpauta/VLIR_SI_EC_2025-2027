@@ -18,7 +18,7 @@
 <dl class="grid" id="out"></dl>
 
 <script>
-const ENDPOINT = "https://api.andesaware.com/weatherstation/latest"; // worker read route
+const ENDPOINT = "https://api.andesaware.com/weatherstation/latest";
 const REFRESH_MS = 30000;
 
 function fToC(f){ return (f - 32) * 5/9; }
@@ -34,30 +34,48 @@ async function load(){
     const res = await fetch(ENDPOINT, { cache: 'no-store' });
     if (!res.ok) throw new Error(`http ${res.status}`);
     const data = await res.json();
-    const g = data.wu_raw || {};
+    const ecowitt = data.ecowitt_api || {};
+    
+    // Extract values from Ecowitt API structure
+    const outdoor = ecowitt.outdoor || {};
+    const wind = ecowitt.wind || {};
+    const pressure = ecowitt.pressure || {};
+    const rainfall = ecowitt.rainfall || {};
+    const solar_uvi = ecowitt.solar_and_uvi || {};
 
-    // parse numbers safely
-    const n = (x) => x==null ? null : Number(x);
-    const tempF = n(g.tempf), dewF = n(g.dewptf), humid = n(g.humidity);
-    const pressInHg = n(g.baromin), windMph = n(g.windspeedmph), gustMph = n(g.windgustmph);
-    const rainIn = n(g.rainin), dayRainIn = n(g.dailyrainin);
-    const solar = n(g.solarradiation), uv = n(g.UV), wdir = n(g.winddir);
+    // Get values with fallbacks
+    const tempF = outdoor.temperature?.value;
+    const humid = outdoor.humidity?.value;
+    const dewF = outdoor.dew_point?.value;
+    const windMph = wind.wind_speed?.value;
+    const gustMph = wind.wind_gust?.value;
+    const wdir = wind.wind_direction?.value;
+    const pressInHg = pressure.relative?.value;
+    const rainIn = rainfall.rain_rate?.value;
+    const dayRainIn = rainfall.daily?.value;
+    const solar = solar_uvi.solar?.value;
+    const uv = solar_uvi.uvi?.value;
 
     const rows = [
-      row('time (utc)', g.dateutc ?? '—'),
-      row('temperature', `${tempF ?? '—'} °F (${tempF!=null ? fToC(tempF).toFixed(1) : '—'} °C)`),
-      row('dew point', `${dewF ?? '—'} °F (${dewF!=null ? fToC(dewF).toFixed(1) : '—'} °C)`),
+      row('temperature', `${tempF ?? '—'} °F (${tempF ? fToC(parseFloat(tempF)).toFixed(1) : '—'} °C)`),
+      row('feels like', `${outdoor.feels_like?.value ?? '—'} °F (${outdoor.feels_like?.value ? fToC(parseFloat(outdoor.feels_like.value)).toFixed(1) : '—'} °C)`),
       row('humidity', `${humid ?? '—'} %`),
-      row('pressure', `${pressInHg ?? '—'} inHg (${pressInHg!=null ? inHgToHpa(pressInHg).toFixed(1) : '—'} hPa)`),
-      row('wind', `${windMph ?? '—'} mph (${windMph!=null ? mphToMs(windMph).toFixed(1) : '—'} m/s) dir ${wdir ?? '—'}°`),
-      row('gust', `${gustMph ?? '—'} mph (${gustMph!=null ? mphToMs(gustMph).toFixed(1) : '—'} m/s)`),
-      row('rain (interval)', `${rainIn ?? '—'} in (${rainIn!=null ? inToMm(rainIn).toFixed(2) : '—'} mm)`),
-      row('rain (today)', `${dayRainIn ?? '—'} in (${dayRainIn!=null ? inToMm(dayRainIn).toFixed(1) : '—'} mm)`),
+      row('dew point', `${dewF ?? '—'} °F (${dewF ? fToC(parseFloat(dewF)).toFixed(1) : '—'} °C)`),
+      row('wind', `${windMph ?? '—'} mph (${windMph ? mphToMs(parseFloat(windMph)).toFixed(1) : '—'} m/s) dir ${wdir ?? '—'}°`),
+      row('gust', `${gustMph ?? '—'} mph (${gustMph ? mphToMs(parseFloat(gustMph)).toFixed(1) : '—'} m/s)`),
+      row('pressure', `${pressInHg ?? '—'} inHg (${pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—'} hPa)`),
+      row('rain rate', `${rainIn ?? '—'} in/hr (${rainIn ? inToMm(parseFloat(rainIn)).toFixed(2) : '—'} mm/hr)`),
+      row('rain today', `${dayRainIn ?? '—'} in (${dayRainIn ? inToMm(parseFloat(dayRainIn)).toFixed(1) : '—'} mm)`),
       row('solar', `${solar ?? '—'} W/m²`),
-      row('uv', uv ?? '—'),
-      row('received', data.wu_raw?.received_at ?? '—'),
-      row('station id', g.ID ?? '—'),
+      row('uv index', uv ?? '—'),
+      row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
     ];
+
+    // Add indoor data if available
+    if (ecowitt.indoor) {
+      rows.splice(3, 0, row('indoor temp', `${ecowitt.indoor.temperature?.value ?? '—'} °F (${ecowitt.indoor.temperature?.value ? fToC(parseFloat(ecowitt.indoor.temperature.value)).toFixed(1) : '—'} °C)`));
+      rows.splice(4, 0, row('indoor humidity', `${ecowitt.indoor.humidity?.value ?? '—'} %`));
+    }
 
     document.getElementById('out').innerHTML = rows.join('');
     status.textContent = `updated ${new Date().toLocaleTimeString()} • refresh ${REFRESH_MS/1000}s`;

@@ -11,15 +11,98 @@
   .v { font-variant-numeric: tabular-nums; }
   .muted { color:#666; font-size:.9rem; margin-top:.75rem }
   .ok { color:#2c7; } .err{ color:#c33; }
+  
+  /* Historical data table styles */
+  .historical-section {
+    margin-top: 2.5rem;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 1.5rem;
+  }
+  
+  .historical-section h2 {
+    margin-bottom: 1rem;
+    color: #333;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+  }
+  
+  thead {
+    background-color: #4b6cb7;
+    color: white;
+  }
+  
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e1e1e1;
+    white-space: nowrap;
+  }
+  
+  tbody tr:hover {
+    background-color: #f1f5fd;
+  }
+  
+  .timestamp {
+    min-width: 180px;
+  }
+  
+  @media (max-width: 768px) {
+    table {
+      font-size: 0.85rem;
+    }
+    
+    th, td {
+      padding: 8px 10px;
+    }
+  }
 </style>
 
 <h1>Kessel-Lo</h1>
 <div id="status" class="muted">loading…</div>
 <dl class="grid" id="out"></dl>
 
+<!-- Historical Data Section -->
+<div class="historical-section">
+  <h2>Historical Weather Data</h2>
+  <div class="table-container">
+    <table id="weather-table">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Temp (°F)</th>
+          <th>Humidity (%)</th>
+          <th>Dew Point (°F)</th>
+          <th>Feels Like (°F)</th>
+          <th>Wind Speed (mph)</th>
+          <th>Wind Gust (mph)</th>
+          <th>Pressure (inHg)</th>
+          <th>Rain Rate (in/hr)</th>
+          <th>Solar (W/m²)</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <!-- Data will be populated by JavaScript -->
+      </tbody>
+    </table>
+  </div>
+  <div class="muted" id="table-info">Loading historical data from GitHub...</div>
+</div>
+
 <script>
 const ENDPOINT = "https://api.andesaware.com/weatherstation/latest";
 const REFRESH_MS = 300000;
+const CSV_URL = "https://raw.githubusercontent.com/your-username/your-repo/main/contents/datasets/AW001.csv";
 
 function fToC(f){ return (f - 32) * 5/9; }
 function mphToMs(m){ return m * 0.44704; }
@@ -85,7 +168,110 @@ async function load(){
     document.getElementById('status').className = "muted err";
   }
 }
-load();
-setInterval(load, REFRESH_MS);
+
+// Parse CSV data
+function parseCSV(csvText) {
+  const lines = csvText.split('\n');
+  const headers = lines[0].split(',').map(h => h.trim());
+  
+  const data = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    
+    const values = lines[i].split(',');
+    const row = {};
+    
+    headers.forEach((header, index) => {
+      let value = values[index] ? values[index].trim() : '';
+      
+      // Convert numeric values
+      if (header !== 'timestamp' && value && !isNaN(value)) {
+        value = parseFloat(value);
+      }
+      
+      row[header] = value;
+    });
+    
+    data.push(row);
+  }
+  
+  return data;
+}
+
+// Format timestamp for display
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  return date.toLocaleString();
+}
+
+// Populate the table with CSV data
+function populateTable(data) {
+  const tableBody = document.getElementById('table-body');
+  const tableInfo = document.getElementById('table-info');
+  
+  tableBody.innerHTML = '';
+  
+  if (!data || data.length === 0) {
+    tableInfo.textContent = 'No historical data available';
+    return;
+  }
+  
+  // Show only last 60 records (most recent first)
+  const displayData = data.slice(-60).reverse();
+  
+  displayData.forEach(row => {
+    const tr = document.createElement('tr');
+    
+    tr.innerHTML = `
+      <td class="timestamp">${formatTimestamp(row.timestamp)}</td>
+      <td>${row.temperature_f}</td>
+      <td>${row.humidity_pct}</td>
+      <td>${row.dew_point_f}</td>
+      <td>${row.feels_like_f}</td>
+      <td>${row.wind_speed_mph}</td>
+      <td>${row.wind_gust_mph}</td>
+      <td>${row.pressure_inhg}</td>
+      <td>${row.rain_rate_inhr}</td>
+      <td>${row.solar_wm2}</td>
+    `;
+    
+    tableBody.appendChild(tr);
+  });
+  
+  tableInfo.textContent = `Showing last ${displayData.length} records from AW001.csv`;
+}
+
+// Fetch CSV data from GitHub
+async function loadCSVData() {
+  try {
+    const tableInfo = document.getElementById('table-info');
+    tableInfo.textContent = 'Fetching data from GitHub...';
+    
+    const response = await fetch(CSV_URL);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const csvText = await response.text();
+    const csvData = parseCSV(csvText);
+    
+    populateTable(csvData);
+    
+  } catch (error) {
+    console.error('Error loading CSV:', error);
+    document.getElementById('table-info').textContent = `Error loading data: ${error.message}`;
+    document.getElementById('table-info').className = "muted err";
+  }
+}
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+  // Load current weather data
+  load();
+  setInterval(load, REFRESH_MS);
+  
+  // Load historical CSV data from GitHub
+  loadCSVData();
+});
 </script>
 </html>

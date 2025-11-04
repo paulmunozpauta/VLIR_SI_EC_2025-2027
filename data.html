@@ -12,6 +12,33 @@
   .muted { color:#666; font-size:.9rem; margin-top:.75rem }
   .ok { color:#2c7; } .err{ color:#c33; }
   
+  /* Map section styles */
+  .map-section {
+    margin-top: 2rem;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 1.5rem;
+  }
+  
+  .map-section h2 {
+    margin-bottom: 1rem;
+    color: #333;
+  }
+  
+  #station-map {
+    height: 300px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+  }
+  
+  .coordinates {
+    text-align: center;
+    font-family: monospace;
+    color: #666;
+    font-size: 0.9rem;
+  }
+  
   /* Historical data table styles */
   .historical-section {
     margin-top: 2.5rem;
@@ -65,12 +92,23 @@
     th, td {
       padding: 8px 10px;
     }
+    
+    #station-map {
+      height: 250px;
+    }
   }
 </style>
 
 <h1>Kessel-Lo</h1>
 <div id="status" class="muted">loading…</div>
 <dl class="grid" id="out"></dl>
+
+<!-- Station Location Map Section -->
+<div class="map-section">
+  <h2>Station Location</h2>
+  <div id="station-map"></div>
+  <div class="coordinates">Coordinates: 50.90241987188318, 4.720330533578788</div>
+</div>
 
 <!-- Historical Data Section -->
 <div class="historical-section">
@@ -99,12 +137,20 @@
   <div class="muted" id="table-info">Loading historical data from GitHub...</div>
 </div>
 
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script>
 const ENDPOINT = "https://api.andesaware.com/weatherstation/latest";
 const REFRESH_MS = 300000;
 
 // Use the correct raw GitHub URL format
 const CSV_URL = "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW001.csv";
+
+// Station coordinates
+const STATION_COORDS = [50.90241987188318, 4.720330533578788];
 
 function fToC(f){ return (f - 32) * 5/9; }
 function mphToMs(m){ return m * 0.44704; }
@@ -169,6 +215,29 @@ async function load(){
     document.getElementById('status').textContent = `failed to load (${e.message}). retrying…`;
     document.getElementById('status').className = "muted err";
   }
+}
+
+// Initialize the map
+function initMap() {
+  const map = L.map('station-map').setView(STATION_COORDS, 15);
+  
+  // Add OpenStreetMap tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+  
+  // Add a marker for the weather station
+  const stationMarker = L.marker(STATION_COORDS).addTo(map)
+    .bindPopup('Weather Station Location<br>Kessel-Lo, Belgium')
+    .openPopup();
+  
+  // Add a circle to highlight the location
+  L.circle(STATION_COORDS, {
+    color: '#4b6cb7',
+    fillColor: '#4b6cb7',
+    fillOpacity: 0.1,
+    radius: 100
+  }).addTo(map);
 }
 
 // Parse CSV data
@@ -272,6 +341,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load current weather data
   load();
   setInterval(load, REFRESH_MS);
+  
+  // Initialize the map
+  initMap();
   
   // Load historical CSV data from GitHub
   loadCSVData();

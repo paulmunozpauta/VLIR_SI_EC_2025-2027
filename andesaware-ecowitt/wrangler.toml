@@ -1,17 +1,15 @@
 name = "andesaware-ecowitt"
 main = "src/index.js"
-compatibility_date = "2024-11-01"
+compatibility_date = "2025-01-01"
 
-[vars]
-ECOWITT_PASSKEY = ""   # choose your secret
+# have the worker catch exactly the path your console calls
+routes = [
+  { pattern = "api.andesaware.com/weatherstation/updateweatherstation", zone_name = "andesaware.com" },
+  { pattern = "api.andesaware.com/weatherstation/*", zone_name = "andesaware.com" }  # catch-all
+]
 
-[[d1_databases]]
-binding = "DB"
-database_name = "ecowitt"
-database_id = "a38b60a1-6eed-4391-9c0a-32b6814a97d6"
 
-[triggers]
-crons = ["*/5 * * * *"]   # every 5 min
-
-[env.production]
-name = "andesaware-ecowitt-production"
+# kv to store latest.json  (replace id below after creation)
+[[kv_namespaces]]
+binding = "WEATHER_KV"
+id = "ab86dc440d124205add2197b83bfcefd"

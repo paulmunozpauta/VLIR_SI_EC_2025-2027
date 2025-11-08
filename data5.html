@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Station - AW002</title>
+    <title>Weather Station - AW005</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -179,7 +179,7 @@
 
     <!-- Content -->
     <main>
-        <h1>AW002: Location</h1>
+        <h1>AW005: Location</h1>
         <div id="status" class="muted">loading…</div>
         <dl class="grid" id="out"></dl>
 
@@ -225,11 +225,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const ENDPOINT = "https://api.andesaware.com/weatherstation/AW002";
+        const ENDPOINT = "https://api.andesaware.com/weatherstation/AW005";
         const REFRESH_MS = 300000;
 
         // Use the correct raw GitHub URL format
-        const CSV_URL = "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW002.csv";
+        const CSV_URL = "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW005.csv";
 
         // Station coordinates
         const STATION_COORDS = [50.90241987188318, 4.720330533578788];
@@ -391,7 +391,7 @@
                 tableBody.appendChild(tr);
             });
             
-            tableInfo.textContent = `Showing last ${displayData.length} records from AW001.csv`;
+            tableInfo.textContent = `Showing last ${displayData.length} records from AW005.csv`;
         }
 
         // Fetch CSV data from GitHub

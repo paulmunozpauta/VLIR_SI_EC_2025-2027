@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Station - AW004</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { 
+            font-family: system-ui, sans-serif; 
+            line-height: 1.35; 
+        }
+        
+        body { 
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        
+        /* Navigation placeholder */
+        #nav-placeholder {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem;
+        }
+        
+        /* Hero banner */
+        .image-banner {
+            position: relative;
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .text-overlay {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        /* Main content */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* Weather data styles */
+        .grid { 
+            display: grid; 
+            grid-template-columns: 14rem 1fr; 
+            gap: .35rem .75rem; 
+            margin: 1.5rem 0;
+        }
+        
+        .k { color: #444; }
+        .v { font-variant-numeric: tabular-nums; }
+        .muted { color:#666; font-size:.9rem; margin-top:.75rem }
+        .ok { color:#2c7; } 
+        .err{ color:#c33; }
+        
+        /* Map section styles */
+        .map-section {
+            margin-top: 2rem;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1.5rem;
+        }
+        
+        .map-section h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        #station-map {
+            height: 300px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .coordinates {
+            text-align: center;
+            font-family: monospace;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* Historical data table styles */
+        .historical-section {
+            margin-top: 2.5rem;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1.5rem;
+        }
+        
+        .historical-section h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+        }
+        
+        thead {
+            background-color: #4b6cb7;
+            color: white;
+        }
+        
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e1e1;
+            white-space: nowrap;
+        }
+        
+        tbody tr:hover {
+            background-color: #f1f5fd;
+        }
+        
+        .timestamp {
+            min-width: 180px;
+        }
+        
+        /* Footer placeholder */
+        #footer-placeholder {
+            background-color: #f5f5f5;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        @media (max-width: 768px) {
+            main {
+                padding: 1rem;
+            }
+            
+            table {
+                font-size: 0.85rem;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+            
+            #station-map {
+                height: 250px;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="nav-placeholder"></div>
+    
+    <div class="image-banner hero-small" style="background-image: url('images/background.jpg');">
+        <div class="text-overlay">Weather data</div>
+    </div>
+
+    <!-- Content -->
+    <main>
+        <h1>AW004: Location</h1>
+        <div id="status" class="muted">loading…</div>
+        <dl class="grid" id="out"></dl>
+
+        <!-- Station Location Map Section -->
+        <div class="map-section">
+            <h2>Location</h2>
+            <div id="station-map"></div>
+            <div class="coordinates">Coordinates: 50.90241987188318, 4.720330533578788</div>
+        </div>
+
+        <!-- Historical Data Section -->
+        <div class="historical-section">
+            <h2>Historical data</h2>
+            <div class="table-container">
+                <table id="weather-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Temp (°F)</th>
+                            <th>Humidity (%)</th>
+                            <th>Dew Point (°F)</th>
+                            <th>Feels Like (°F)</th>
+                            <th>Wind Speed (mph)</th>
+                            <th>Wind Gust (mph)</th>
+                            <th>Pressure (inHg)</th>
+                            <th>Rain Rate (in/hr)</th>
+                            <th>Solar (W/m²)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="muted" id="table-info">Loading historical data from GitHub...</div>
+        </div>
+    </main>
+    
+    <!-- Footer will be inserted here -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const ENDPOINT = "https://api.andesaware.com/weatherstation/AW004";
+        const REFRESH_MS = 300000;
+
+        // Use the correct raw GitHub URL format
+        const CSV_URL = "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW004.csv";
+
+        // Station coordinates
+        const STATION_COORDS = [50.90241987188318, 4.720330533578788];
+
+        function fToC(f){ return (f - 32) * 5/9; }
+        function mphToMs(m){ return m * 0.44704; }
+        function inHgToHpa(i){ return i * 33.8638866667; }
+        function inToMm(i){ return i * 25.4; }
+
+        function row(k, v){ return `<dt class="k">${k}</dt><dd class="v">${v}</dd>`; }
+
+        async function load(){
+            const status = document.getElementById('status');
+            try {
+                const res = await fetch(ENDPOINT, { cache: 'no-store' });
+                if (!res.ok) throw new Error(`http ${res.status}`);
+                const data = await res.json();
+                const ecowitt = data.ecowitt_api || {};
+                
+                // Extract values from Ecowitt API structure
+                const outdoor = ecowitt.outdoor || {};
+                const wind = ecowitt.wind || {};
+                const pressure = ecowitt.pressure || {};
+                const rainfall = ecowitt.rainfall || {};
+                const solar_uvi = ecowitt.solar_and_uvi || {};
+
+                // Get values with fallbacks
+                const tempF = outdoor.temperature?.value;
+                const humid = outdoor.humidity?.value;
+                const dewF = outdoor.dew_point?.value;
+                const windMph = wind.wind_speed?.value;
+                const gustMph = wind.wind_gust?.value;
+                const wdir = wind.wind_direction?.value;
+                const pressInHg = pressure.relative?.value;
+                const rainIn = rainfall.rain_rate?.value;
+                const dayRainIn = rainfall.daily?.value;
+                const solar = solar_uvi.solar?.value;
+                const uv = solar_uvi.uvi?.value;
+
+                const rows = [
+                    row('temperature', `${tempF ?? '—'} °F (${tempF ? fToC(parseFloat(tempF)).toFixed(1) : '—'} °C)`),
+                    row('feels like', `${outdoor.feels_like?.value ?? '—'} °F (${outdoor.feels_like?.value ? fToC(parseFloat(outdoor.feels_like.value)).toFixed(1) : '—'} °C)`),
+                    row('humidity', `${humid ?? '—'} %`),
+                    row('dew point', `${dewF ?? '—'} °F (${dewF ? fToC(parseFloat(dewF)).toFixed(1) : '—'} °C)`),
+                    row('wind', `${windMph ?? '—'} mph (${windMph ? mphToMs(parseFloat(windMph)).toFixed(1) : '—'} m/s) dir ${wdir ?? '—'}°`),
+                    row('gust', `${gustMph ?? '—'} mph (${gustMph ? mphToMs(parseFloat(gustMph)).toFixed(1) : '—'} m/s)`),
+                    row('pressure', `${pressInHg ?? '—'} inHg (${pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—'} hPa)`),
+                    row('rain rate', `${rainIn ?? '—'} in/hr (${rainIn ? inToMm(parseFloat(rainIn)).toFixed(2) : '—'} mm/hr)`),
+                    row('rain today', `${dayRainIn ?? '—'} in (${dayRainIn ? inToMm(parseFloat(dayRainIn)).toFixed(1) : '—'} mm)`),
+                    row('solar', `${solar ?? '—'} W/m²`),
+                    row('uv index', uv ?? '—'),
+                    row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
+                ];
+
+                // Add indoor data if available
+                if (ecowitt.indoor) {
+                    rows.splice(3, 0, row('indoor temp', `${ecowitt.indoor.temperature?.value ?? '—'} °F (${ecowitt.indoor.temperature?.value ? fToC(parseFloat(ecowitt.indoor.temperature.value)).toFixed(1) : '—'} °C)`));
+                    rows.splice(4, 0, row('indoor humidity', `${ecowitt.indoor.humidity?.value ?? '—'} %`));
+                }
+
+                document.getElementById('out').innerHTML = rows.join('');
+                status.textContent = `updated ${new Date().toLocaleTimeString()} • refresh ${REFRESH_MS/1000}s`;
+                status.className = "muted ok";
+            } catch (e) {
+                document.getElementById('status').textContent = `failed to load (${e.message}). retrying…`;
+                document.getElementById('status').className = "muted err";
+            }
+        }
+
+        // Initialize the map
+        function initMap() {
+            const map = L.map('station-map').setView(STATION_COORDS, 15);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add a marker for the weather station
+            const stationMarker = L.marker(STATION_COORDS).addTo(map)
+                .bindPopup('Weather Station Location<br>Kessel-Lo, Belgium')
+                .openPopup();
+            
+            // Add a circle to highlight the location
+            L.circle(STATION_COORDS, {
+                color: '#4b6cb7',
+                fillColor: '#4b6cb7',
+                fillOpacity: 0.1,
+                radius: 100
+            }).addTo(map);
+        }
+
+        // Parse CSV data
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const values = lines[i].split(',');
+                const row = {};
+                
+                headers.forEach((header, index) => {
+                    let value = values[index] ? values[index].trim() : '';
+                    
+                    // Convert numeric values
+                    if (header !== 'timestamp' && value && !isNaN(value)) {
+                        value = parseFloat(value);
+                    }
+                    
+                    row[header] = value;
+                });
+                
+                data.push(row);
+            }
+            
+            return data;
+        }
+
+        // Format timestamp for display
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        // Populate the table with CSV data
+        function populateTable(data) {
+            const tableBody = document.getElementById('table-body');
+            const tableInfo = document.getElementById('table-info');
+            
+            tableBody.innerHTML = '';
+            
+            if (!data || data.length === 0) {
+                tableInfo.textContent = 'No historical data available';
+                return;
+            }
+            
+            // Show only last 60 records (most recent first)
+            const displayData = data.slice(-60).reverse();
+            
+            displayData.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                tr.innerHTML = `
+                    <td class="timestamp">${formatTimestamp(row.timestamp)}</td>
+                    <td>${row.temperature_f}</td>
+                    <td>${row.humidity_pct}</td>
+                    <td>${row.dew_point_f}</td>
+                    <td>${row.feels_like_f}</td>
+                    <td>${row.wind_speed_mph}</td>
+                    <td>${row.wind_gust_mph}</td>
+                    <td>${row.pressure_inhg}</td>
+                    <td>${row.rain_rate_inhr}</td>
+                    <td>${row.solar_wm2}</td>
+                `;
+                
+                tableBody.appendChild(tr);
+            });
+            
+            tableInfo.textContent = `Showing last ${displayData.length} records from AW004.csv`;
+        }
+
+        // Fetch CSV data from GitHub
+        async function loadCSVData() {
+            try {
+                const tableInfo = document.getElementById('table-info');
+                tableInfo.textContent = 'Fetching data from GitHub...';
+                
+                const response = await fetch(CSV_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const csvText = await response.text();
+                const csvData = parseCSV(csvText);
+                
+                populateTable(csvData);
+                tableInfo.textContent = `✓ Loaded ${csvData.length} records`;
+                
+            } catch (error) {
+                console.error('Error loading CSV:', error);
+                document.getElementById('table-info').textContent = `Error loading data: ${error.message}`;
+                document.getElementById('table-info').className = "muted err";
+            }
+        }
+
+        // Components auto-loaded
+        async function loadComponents() {
+            try {
+                const res = await fetch('components.html');
+                const text = await res.text();
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = text;
+
+                const logoBar = tempDiv.querySelector('#logo-bar');
+                if (logoBar) {
+                    document.body.insertBefore(logoBar, document.body.firstChild);
+                }
+
+                const nav = tempDiv.querySelector('#shared-nav');
+                if (nav) {
+                    const navPlaceholder = document.getElementById('nav-placeholder');
+                    navPlaceholder.parentNode.replaceChild(nav, navPlaceholder);
+                }
+
+                const footer = tempDiv.querySelector('#shared-footer');
+                if (footer) {
+                    const footerPlaceholder = document.getElementById('footer-placeholder');
+                    footerPlaceholder.parentNode.replaceChild(footer, footerPlaceholder);
+                }
+            } catch (error) {
+                console.error('Error loading components:', error);
+                // Fallback navigation if components.html is not available
+                document.getElementById('nav-placeholder').innerHTML = `
+                    <nav style="padding: 1rem; background: #2c3e50; color: white;">
+                        <a href="/" style="color: white; text-decoration: none; font-weight: bold;">Home</a> | 
+                        <a href="/weather.html" style="color: white; text-decoration: none;">Weather Station</a>
+                    </nav>
+                `;
+                
+                document.getElementById('footer-placeholder').innerHTML = `
+                    <footer style="text-align: center; padding: 2rem; background: #f5f5f5;">
+                        <p>Weather Station Data - Kessel-Lo</p>
+                    </footer>
+                `;
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load navigation and footer components
+            loadComponents();
+            
+            // Load current weather data
+            load();
+            setInterval(load, REFRESH_MS);
+            
+            // Initialize the map
+            initMap();
+            
+            // Load historical CSV data from GitHub
+            loadCSVData();
+        });
+    </script>
+</body>
+</html>

@@ -19,7 +19,7 @@ export default {
       return new Response(ok ? `OK: last=${last} age=${age}s` : "STALE", { status: ok ? 200 : 503, headers: noStore(req) });
     }
 
-    // raw latest
+    // raw latest - all sensors
     if (path === "/weatherstation/latest") {
       const j = await env.WEATHER_KV.get("latest.json");
       console.log("read_latest", { found: !!j, len: j?.length || 0 });
@@ -27,54 +27,132 @@ export default {
       return new Response(j, { status: 200, headers: noStoreJson(req) });
     }
 
+    // individual sensor data
+    if (path.startsWith("/weatherstation/sensor/")) {
+      const sensorId = path.split('/').pop(); // Get the sensor ID from URL
+      const j = await env.WEATHER_KV.get(`sensor_${sensorId}.json`);
+      console.log("read_sensor", { sensorId, found: !!j });
+      if (!j) return new Response("sensor not found", { status: 404, headers: noStoreJson(req) });
+      return new Response(j, { status: 200, headers: noStoreJson(req) });
+    }
+
     return new Response("not found", { status: 404, headers: noStore(req) });
   },
 
   async scheduled(event, env, ctx) {
-    console.log("Fetching data from Ecowitt API (5-minute interval)...");
+    console.log("Fetching data from Ecowitt API for all sensors (5-minute interval)...");
     
-    try {
-      const mac = "EC:64:C9:F2:AC:79";
-      const apiUrl = `https://api.ecowitt.net/api/v3/device/real_time?application_key=31B06CAD6518B81F808312D91B55973A&api_key=be6a3fde-4a04-40e0-8452-49ef32af65a0&mac=${mac}&call_back=all&temp_unitid=2&pressure_unitid=4&wind_speed_unitid=9&rainfall_unitid=13`;
-      
-      const response = await fetch(apiUrl);
-      const data = await response.json();
-      
-      console.log("Ecowitt API response:", { code: data.code, msg: data.msg });
-      
-      if (data.code === 0) {
-        const timestamp = new Date().toISOString();
-        
-        // Store in KV
-        const payload = JSON.stringify({
-          ecowitt_api: data.data,
-          received_at: timestamp,
-          api_timestamp: data.time
-        }, null, 2);
-        
-        await env.WEATHER_KV.put("latest.json", payload);
-        
-        // Append to CSV in GitHub
-        await appendToGitHubCSV(data.data, timestamp, env);
-        
-        console.log("5-minute data stored successfully", { 
-          outdoor_temp: data.data.outdoor?.temperature?.value,
-          humidity: data.data.outdoor?.humidity?.value,
-          timestamp: timestamp
-        });
-      } else {
-        console.log("Ecowitt API error:", data.msg, data.code);
+    // Define your 5 sensors with their MAC addresses and names
+    const sensors = [
+      { 
+        id: "AW001", 
+        mac: "EC:64:C9:F2:AC:79", 
+        name: "Kessel-Lo Main Station",
+        csvFile: "AW001.csv"
+      },
+      { 
+        id: "AW002", 
+        mac: "CC:7B:5C:51:58:E1", 
+        name: "Sensor Location 2",
+        csvFile: "AW002.csv"
+      },
+      { 
+        id: "AW003", 
+        mac: "24:D7:EB:EA:E5:EC", 
+        name: "Sensor Location 3", 
+        csvFile: "AW003.csv"
+      },
+      { 
+        id: "AW004", 
+        mac: "EC:64:C9:F1:CC:74", 
+        name: "Sensor Location 4",
+        csvFile: "AW004.csv"
+      },
+      { 
+        id: "AW005", 
+        mac: "CC:7B:5C:51:55:E9", 
+        name: "Sensor Location 5",
+        csvFile: "AW005.csv"
       }
+    ];
+
+    try {
+      // Fetch data for all sensors in parallel
+      const sensorPromises = sensors.map(async (sensor) => {
+        try {
+          const apiUrl = `https://api.ecowitt.net/api/v3/device/real_time?application_key=31B06CAD6518B81F808312D91B55973A&api_key=be6a3fde-4a04-40e0-8452-49ef32af65a0&mac=${sensor.mac}&call_back=all&temp_unitid=2&pressure_unitid=4&wind_speed_unitid=9&rainfall_unitid=13`;
+          
+          console.log(`Fetching data for sensor ${sensor.id} (${sensor.mac})...`);
+          const response = await fetch(apiUrl);
+          const data = await response.json();
+          
+          console.log(`Sensor ${sensor.id} API response:`, { code: data.code, msg: data.msg });
+          
+          if (data.code === 0) {
+            const timestamp = new Date().toISOString();
+            
+            // Create sensor payload
+            const payload = JSON.stringify({
+              sensor_id: sensor.id,
+              sensor_name: sensor.name,
+              ecowitt_api: data.data,
+              received_at: timestamp,
+              api_timestamp: data.time
+            }, null, 2);
+            
+            // Store individual sensor data
+            await env.WEATHER_KV.put(`sensor_${sensor.id}.json`, payload);
+            
+            // Append to individual CSV file
+            await appendToGitHubCSV(data.data, timestamp, env, sensor.csvFile, sensor.id);
+            
+            console.log(`Sensor ${sensor.id} data stored successfully`, { 
+              outdoor_temp: data.data.outdoor?.temperature?.value,
+              humidity: data.data.outdoor?.humidity?.value,
+              timestamp: timestamp
+            });
+            
+            return { sensorId: sensor.id, success: true, data: payload };
+          } else {
+            console.log(`Sensor ${sensor.id} API error:`, data.msg, data.code);
+            return { sensorId: sensor.id, success: false, error: data.msg };
+          }
+        } catch (error) {
+          console.log(`Sensor ${sensor.id} fetch failed:`, error.message);
+          return { sensorId: sensor.id, success: false, error: error.message };
+        }
+      });
+
+      // Wait for all sensors to complete
+      const results = await Promise.all(sensorPromises);
+      
+      // Create combined latest data
+      const combinedData = {
+        timestamp: new Date().toISOString(),
+        sensors: results.filter(r => r.success).map(r => ({
+          sensor_id: r.sensorId,
+          data: JSON.parse(r.data)
+        }))
+      };
+      
+      // Store combined data
+      await env.WEATHER_KV.put("latest.json", JSON.stringify(combinedData, null, 2));
+      
+      // Log summary
+      const successful = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+      console.log(`Scheduled job completed: ${successful} successful, ${failed} failed`);
+      
     } catch (error) {
-      console.log("Ecowitt API fetch failed:", error.message);
+      console.log("Scheduled job failed:", error.message);
     }
   }
 };
 
-// Function to append data to CSV in GitHub
-async function appendToGitHubCSV(weatherData, timestamp, env) {
+// Updated function to append data to specific CSV files
+async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, sensorId) {
   try {
-    console.log("=== GITHUB CSV DEBUG START ===");
+    console.log(`=== GITHUB CSV DEBUG START for ${sensorId} ===`);
     
     // Extract main weather parameters
     const outdoor = weatherData.outdoor || {};
@@ -104,14 +182,14 @@ async function appendToGitHubCSV(weatherData, timestamp, env) {
     ].join(',');
     
     // GitHub configuration
-    const repo = env.GITHUB_REPO; // Should be "paulmunozpauta/VLIR_SI_EC_2025-2027"
-    const csvUrl = `https://api.github.com/repos/${repo}/contents/datasets/AW001.csv`;
+    const repo = env.GITHUB_REPO;
+    const csvUrl = `https://api.github.com/repos/${repo}/contents/datasets/${csvFileName}`;
     
     console.log("GitHub Config:", {
+      sensorId: sensorId,
+      csvFile: csvFileName,
       repo: repo,
-      fullUrl: csvUrl,
-      tokenExists: !!env.GITHUB_TOKEN,
-      tokenLength: env.GITHUB_TOKEN ? env.GITHUB_TOKEN.length : 0
+      fullUrl: csvUrl
     });
     
     const headers = {
@@ -120,30 +198,11 @@ async function appendToGitHubCSV(weatherData, timestamp, env) {
       'Accept': 'application/vnd.github.v3+json'
     };
     
-    // Test 1: Check if repository exists and is accessible
-    console.log("Testing repository access...");
-    const repoTestUrl = `https://api.github.com/repos/${repo}`;
-    const repoResponse = await fetch(repoTestUrl, { headers });
-    console.log("Repository test - Status:", repoResponse.status);
-    
-    if (!repoResponse.ok) {
-      const repoError = await repoResponse.text();
-      console.log("❌ Repository access failed:", repoError);
-      return;
-    }
-    console.log("✅ Repository access successful");
-    
-    // Test 2: Check if datasets folder exists or create it
-    console.log("Checking datasets folder...");
-    const datasetsUrl = `https://api.github.com/repos/${repo}/contents/datasets`;
-    const datasetsResponse = await fetch(datasetsUrl, { headers });
-    console.log("Datasets folder check - Status:", datasetsResponse.status);
-    
     let existingContent = '';
     let sha = null;
     
-    // Test 3: Check if CSV file exists
-    console.log("Checking if AW001.csv exists...");
+    // Check if CSV file exists
+    console.log(`Checking if ${csvFileName} exists...`);
     const fileResponse = await fetch(csvUrl, { headers });
     console.log("File check - Status:", fileResponse.status);
     
@@ -151,48 +210,48 @@ async function appendToGitHubCSV(weatherData, timestamp, env) {
       const fileData = await fileResponse.json();
       existingContent = atob(fileData.content);
       sha = fileData.sha;
-      console.log("✅ Found existing CSV file, rows:", existingContent.split('\n').length - 1);
+      console.log(`✅ Found existing CSV file for ${sensorId}, rows:`, existingContent.split('\n').length - 1);
     } else if (fileResponse.status === 404) {
-      console.log("📝 CSV file doesn't exist, will create new file");
+      console.log(`📝 CSV file ${csvFileName} doesn't exist, will create new file`);
     } else {
       const errorText = await fileResponse.text();
-      console.log("❌ File check error:", fileResponse.status, errorText);
+      console.log(`❌ File check error for ${sensorId}:`, fileResponse.status, errorText);
       return;
     }
     
     // Create CSV header if file doesn't exist
     if (!existingContent) {
       existingContent = 'timestamp,temperature_f,humidity_pct,dew_point_f,feels_like_f,wind_speed_mph,wind_gust_mph,wind_direction_deg,pressure_inhg,rain_rate_inhr,daily_rain_in,solar_wm2,uv_index,indoor_temp_f,indoor_humidity_pct\n';
-      console.log("📄 Created CSV headers");
+      console.log(`📄 Created CSV headers for ${sensorId}`);
     }
     
     // Append new row
     const newContent = existingContent + csvRow + '\n';
     
-    console.log("Updating file on GitHub...");
+    console.log(`Updating file ${csvFileName} on GitHub...`);
     const updateResponse = await fetch(csvUrl, {
       method: 'PUT',
       headers,
       body: JSON.stringify({
-        message: `Add 5-minute weather data: ${timestamp}`,
+        message: `Add 5-minute weather data for ${sensorId}: ${timestamp}`,
         content: btoa(newContent),
         sha: sha
       })
     });
     
-    console.log("GitHub update response - Status:", updateResponse.status);
+    console.log(`GitHub update response for ${sensorId} - Status:`, updateResponse.status);
     
     if (updateResponse.ok) {
-      console.log("✅ CSV data appended to GitHub successfully");
+      console.log(`✅ CSV data for ${sensorId} appended to GitHub successfully`);
     } else {
       const error = await updateResponse.text();
-      console.log("❌ Failed to update GitHub CSV. Status:", updateResponse.status, "Error:", error);
+      console.log(`❌ Failed to update GitHub CSV for ${sensorId}. Status:`, updateResponse.status, "Error:", error);
     }
     
-    console.log("=== GITHUB CSV DEBUG END ===");
+    console.log(`=== GITHUB CSV DEBUG END for ${sensorId} ===`);
     
   } catch (error) {
-    console.log("💥 Error in appendToGitHubCSV:", error.message, error.stack);
+    console.log(`💥 Error in appendToGitHubCSV for ${sensorId}:`, error.message);
   }
 }
 
@@ -201,5 +260,11 @@ function corsHeaders(req) {
   const allow = ["https://andesaware.com","https://www.andesaware.com","https://paulmunozpauta.github.io"].includes(origin) ? origin : "*";
   return { "Access-Control-Allow-Origin": allow, "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", "Access-Control-Max-Age": "86400" };
 }
-function noStore(req){ return { ...corsHeaders(req), "Cache-Control":"no-store", "Content-Type": "text/plain; charset=utf-8" }; }
-function noStoreJson(req){ return { ...corsHeaders(req), "Cache-Control":"no-store", "Content-Type": "application/json; charset=utf-8" }; }
+
+function noStore(req){ 
+  return { ...corsHeaders(req), "Cache-Control":"no-store", "Content-Type": "text/plain; charset=utf-8" }; 
+}
+
+function noStoreJson(req){ 
+  return { ...corsHeaders(req), "Cache-Control":"no-store", "Content-Type": "application/json; charset=utf-8" }; 
+}

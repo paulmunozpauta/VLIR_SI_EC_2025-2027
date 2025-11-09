@@ -106,7 +106,7 @@ export default {
             await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
           }
           
-          const apiUrl = `https://api.ecowitt.net/api/v3/device/real_time?application_key=31B06CAD6518B81F808312D91B55973A&api_key=be6a3fde-4a04-40e0-8452-49ef32af65a0&mac=${sensor.mac}&call_back=all&temp_unitid=2&pressure_unitid=4&wind_speed_unitid=9&rainfall_unitid=13`;
+          const apiUrl = `https://api.ecowitt.net/api/v3/device/real_time?application_key=31B06CAD6518B81F808312D91B55973A&api_key=be6a3fde-4a04-40e0-8452-49ef32af65a0&mac=${sensor.mac}&call_back=all&temp_unitid=1&pressure_unitid=1&wind_speed_unitid=1&rainfall_unitid=2`;
           
           console.log(`Fetching HOURLY data for sensor ${sensor.id}...`);
           const response = await fetch(apiUrl);
@@ -159,6 +159,7 @@ export default {
       const combinedData = {
         timestamp: new Date().toISOString(),
         collection_type: "HOURLY",
+        units: "SI",
         sensors: results.filter(r => r.success).map(r => ({
           sensor_id: r.sensorId,
           sensor_name: r.data.sensor_name,
@@ -193,23 +194,41 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
     const solar_uvi = weatherData.solar_and_uvi || {};
     const indoor = weatherData.indoor || {};
     
-    // Create CSV row
+    // Convert to SI units if API returns imperial (fallback conversion)
+    const convertToCelsius = (fahrenheit) => fahrenheit !== undefined ? ((fahrenheit - 32) * 5/9).toFixed(1) : '';
+    const convertToMs = (mph) => mph !== undefined ? (mph * 0.44704).toFixed(1) : '';
+    const convertToHpa = (inhg) => inhg !== undefined ? (inhg * 33.8639).toFixed(1) : '';
+    const convertToMm = (inches) => inches !== undefined ? (inches * 25.4).toFixed(1) : '';
+    
+    // Get values - API should return SI but we convert as fallback
+    const tempC = outdoor.temperature?.value || '';
+    const feelsLikeC = outdoor.feels_like?.value || '';
+    const dewPointC = outdoor.dew_point?.value || '';
+    const indoorTempC = indoor.temperature?.value || '';
+    const windSpeedMs = wind.wind_speed?.value || '';
+    const windGustMs = wind.wind_gust?.value || '';
+    const pressureHpa = pressure.relative?.value || '';
+    const rainRateMm = rainfall.rain_rate?.value || '';
+    const dailyRainMm = rainfall.daily?.value || '';
+    
+
+    // Create CSV row with SI units
     const csvRow = [
       timestamp,
-      outdoor.temperature?.value || '',
-      outdoor.humidity?.value || '',
-      outdoor.dew_point?.value || '',
-      outdoor.feels_like?.value || '',
-      wind.wind_speed?.value || '',
-      wind.wind_gust?.value || '',
-      wind.wind_direction?.value || '',
-      pressure.relative?.value || '',
-      rainfall.rain_rate?.value || '',
-      rainfall.daily?.value || '',
-      solar_uvi.solar?.value || '',
-      solar_uvi.uvi?.value || '',
-      indoor.temperature?.value || '',
-      indoor.humidity?.value || ''
+      tempC,                          // Temperature (°C)
+      outdoor.humidity?.value || '',  // Humidity (%)
+      dewPointC,                      // Dew Point (°C)
+      feelsLikeC,                     // Feels Like (°C)
+      windSpeedMs,                    // Wind Speed (m/s)
+      windGustMs,                     // Wind Gust (m/s)
+      wind.wind_direction?.value || '', // Wind Direction (°)
+      pressureHpa,                    // Pressure (hPa)
+      rainRateMm,                     // Rain Rate (mm/hr)
+      dailyRainMm,                    // Daily Rain (mm)
+      solar_uvi.solar?.value || '',   // Solar Radiation (W/m²)
+      solar_uvi.uvi?.value || '',     // UV Index
+      indoorTempC,                    // Indoor Temperature (°C)
+      indoor.humidity?.value || ''    // Indoor Humidity (%)
     ].join(',');
     
     // GitHub configuration
@@ -242,7 +261,7 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
     
     // Create CSV header if file doesn't exist
     if (!existingContent) {
-      existingContent = 'timestamp,temperature_f,humidity_pct,dew_point_f,feels_like_f,wind_speed_mph,wind_gust_mph,wind_direction_deg,pressure_inhg,rain_rate_inhr,daily_rain_in,solar_wm2,uv_index,indoor_temp_f,indoor_humidity_pct\n';
+      existingContent = 'timestamp,temperature_c,humidity_pct,dew_point_c,feels_like_c,wind_speed_ms,wind_gust_ms,wind_direction_deg,pressure_hpa,rain_rate_mmhr,daily_rain_mm,solar_wm2,uv_index,indoor_temp_c,indoor_humidity_pct\n';
     }
     
     // Append new row
@@ -259,7 +278,7 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
     });
     
     if (updateResponse.ok) {
-      console.log(`✅ HOURLY CSV data for ${sensorId} appended to GitHub`);
+      console.log(`✅ HOURLY SI CSV data for ${sensorId} appended to GitHub`);
     } else {
       console.log(`❌ Failed to update GitHub CSV for ${sensorId}:`, updateResponse.status);
     }

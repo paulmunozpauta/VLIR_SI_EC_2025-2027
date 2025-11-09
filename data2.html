@@ -206,7 +206,11 @@
                             <th>Wind Gust (km/h)</th>
                             <th>Pressure (hPa)</th>
                             <th>Rain Rate (mm/hr)</th>
+                            <th>Rain Today (mm)</th>
                             <th>Solar (W/m²)</th>
+                            <th>UV Index</th>
+                            <th>Indoor Temp (°C)</th>
+                            <th>Indoor Humidity (%)</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
@@ -330,27 +334,49 @@
             }).addTo(map);
         }
 
-        // Parse CSV data
+        // FIXED CSV PARSING - Add headers if not present
         function parseCSV(csvText) {
-            const lines = csvText.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim());
+            const lines = csvText.split('\n').filter(line => line.trim());
+            
+            // Define headers based on your CSV structure
+            const headers = [
+                'timestamp', 'temperature_c', 'humidity_pct', 'dew_point_c', 'feels_like_c',
+                'wind_speed_kmh', 'wind_gust_kmh', 'wind_direction_deg', 'pressure_inhg',
+                'rain_rate_mmhr', 'rain_daily_mm', 'solar_wm2', 'uvi',
+                'indoor_temp_c', 'indoor_humidity_pct'
+            ];
             
             const data = [];
-            for (let i = 1; i < lines.length; i++) {
+            
+            // Check if first line contains headers or data
+            const firstLine = lines[0].split(',');
+            const hasHeaders = isNaN(parseFloat(firstLine[1])); // Check if second column is numeric
+            
+            let startIndex = 0;
+            if (hasHeaders) {
+                // Use existing headers if present
+                startIndex = 1;
+            }
+            
+            for (let i = startIndex; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
                 
-                const values = lines[i].split(',');
+                const values = lines[i].split(',').map(v => v.trim());
                 const row = {};
                 
                 headers.forEach((header, index) => {
-                    let value = values[index] ? values[index].trim() : '';
-                    
-                    // Convert numeric values
-                    if (header !== 'timestamp' && value && !isNaN(value)) {
-                        value = parseFloat(value);
+                    if (index < values.length) {
+                        let value = values[index];
+                        
+                        // Convert numeric values
+                        if (header !== 'timestamp' && value && !isNaN(value) && value.trim() !== '') {
+                            value = parseFloat(value);
+                        }
+                        
+                        row[header] = value;
+                    } else {
+                        row[header] = '';
                     }
-                    
-                    row[header] = value;
                 });
                 
                 data.push(row);
@@ -361,11 +387,16 @@
 
         // Format timestamp for display
         function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleString();
+            if (!timestamp) return 'Invalid Date';
+            try {
+                const date = new Date(timestamp);
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
+            } catch (e) {
+                return 'Invalid Date';
+            }
         }
 
-        // Populate the table with CSV data
+        // FIXED TABLE POPULATION - Use the correct column names
         function populateTable(data) {
             const tableBody = document.getElementById('table-body');
             const tableInfo = document.getElementById('table-info');
@@ -383,24 +414,27 @@
             displayData.forEach(row => {
                 const tr = document.createElement('tr');
                 
-                // Updated to match Celsius units and metric system
                 tr.innerHTML = `
                     <td class="timestamp">${formatTimestamp(row.timestamp)}</td>
-                    <td>${row.temperature_c ?? row.temperature_f}</td>
-                    <td>${row.humidity_pct}</td>
-                    <td>${row.dew_point_c ?? row.dew_point_f}</td>
-                    <td>${row.feels_like_c ?? row.feels_like_f}</td>
-                    <td>${row.wind_speed_kmh ?? row.wind_speed_mph}</td>
-                    <td>${row.wind_gust_kmh ?? row.wind_gust_mph}</td>
-                    <td>${row.pressure_hpa ?? row.pressure_inhg}</td>
-                    <td>${row.rain_rate_mmhr ?? row.rain_rate_inhr}</td>
-                    <td>${row.solar_wm2}</td>
+                    <td>${row.temperature_c !== undefined ? row.temperature_c : '—'}</td>
+                    <td>${row.humidity_pct !== undefined ? row.humidity_pct : '—'}</td>
+                    <td>${row.dew_point_c !== undefined ? row.dew_point_c : '—'}</td>
+                    <td>${row.feels_like_c !== undefined ? row.feels_like_c : '—'}</td>
+                    <td>${row.wind_speed_kmh !== undefined ? row.wind_speed_kmh : '—'}</td>
+                    <td>${row.wind_gust_kmh !== undefined ? row.wind_gust_kmh : '—'}</td>
+                    <td>${row.pressure_inhg !== undefined ? inHgToHpa(parseFloat(row.pressure_inhg)).toFixed(1) : '—'}</td>
+                    <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
+                    <td>${row.rain_daily_mm !== undefined ? row.rain_daily_mm : '—'}</td>
+                    <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
+                    <td>${row.uvi !== undefined ? row.uvi : '—'}</td>
+                    <td>${row.indoor_temp_c !== undefined ? row.indoor_temp_c : '—'}</td>
+                    <td>${row.indoor_humidity_pct !== undefined ? row.indoor_humidity_pct : '—'}</td>
                 `;
                 
                 tableBody.appendChild(tr);
             });
             
-            tableInfo.textContent = `Showing last ${displayData.length} records from AW002.csv`;
+            tableInfo.textContent = `✓ Loaded ${data.length} records (showing last ${displayData.length})`;
         }
 
         // Fetch CSV data from GitHub
@@ -415,10 +449,12 @@
                 }
                 
                 const csvText = await response.text();
+                console.log('Raw CSV data:', csvText); // Debug log
+                
                 const csvData = parseCSV(csvText);
+                console.log('Parsed CSV data:', csvData); // Debug log
                 
                 populateTable(csvData);
-                tableInfo.textContent = `✓ Loaded ${csvData.length} records`;
                 
             } catch (error) {
                 console.error('Error loading CSV:', error);

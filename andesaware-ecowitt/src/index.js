@@ -106,7 +106,7 @@ export default {
             await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
           }
           
-          const apiUrl = `https://api.ecowitt.net/api/v3/device/real_time?application_key=31B06CAD6518B81F808312D91B55973A&api_key=be6a3fde-4a04-40e0-8452-49ef32af65a0&mac=${sensor.mac}&call_back=all&temp_unitid=1&pressure_unitid=1&wind_speed_unitid=1&rainfall_unitid=2`;
+          const apiUrl = `...&temp_unitid=1&pressure_unitid=4&wind_speed_unitid=7&rainfall_unitid=12`;
           
           console.log(`Fetching HOURLY data for sensor ${sensor.id}...`);
           const response = await fetch(apiUrl);

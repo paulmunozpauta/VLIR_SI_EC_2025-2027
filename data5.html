@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Station - AW005</title>
+    <title>Weather Station - Kessel-Lo</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -179,7 +179,7 @@
 
     <!-- Content -->
     <main>
-        <h1>AW005: Location</h1>
+        <h1>AW005: Location 5</h1>
         <div id="status" class="muted">loading…</div>
         <dl class="grid" id="out"></dl>
 
@@ -198,14 +198,14 @@
                     <thead>
                         <tr>
                             <th>Timestamp</th>
-                            <th>Temp (°F)</th>
+                            <th>Temp (°C)</th>
                             <th>Humidity (%)</th>
-                            <th>Dew Point (°F)</th>
-                            <th>Feels Like (°F)</th>
-                            <th>Wind Speed (mph)</th>
-                            <th>Wind Gust (mph)</th>
-                            <th>Pressure (inHg)</th>
-                            <th>Rain Rate (in/hr)</th>
+                            <th>Dew Point (°C)</th>
+                            <th>Feels Like (°C)</th>
+                            <th>Wind Speed (km/h)</th>
+                            <th>Wind Gust (km/h)</th>
+                            <th>Pressure (hPa)</th>
+                            <th>Rain Rate (mm/hr)</th>
                             <th>Solar (W/m²)</th>
                         </tr>
                     </thead>
@@ -234,10 +234,11 @@
         // Station coordinates
         const STATION_COORDS = [50.90241987188318, 4.720330533578788];
 
-        function fToC(f){ return (f - 32) * 5/9; }
-        function mphToMs(m){ return m * 0.44704; }
-        function inHgToHpa(i){ return i * 33.8638866667; }
-        function inToMm(i){ return i * 25.4; }
+        // CORRECTED CONVERSION FUNCTIONS
+        function cToF(c){ return (c * 9/5) + 32; }  // Fixed: Celsius to Fahrenheit
+        function kmhToMph(km){ return km * 0.621371; }
+        function hpaToInHg(h){ return h * 0.02953; }
+        function mmToIn(mm){ return mm * 0.0393701; }
 
         function row(k, v){ return `<dt class="k">${k}</dt><dd class="v">${v}</dd>`; }
 
@@ -256,29 +257,31 @@
                 const rainfall = ecowitt.rainfall || {};
                 const solar_uvi = ecowitt.solar_and_uvi || {};
 
-                // Get values with fallbacks
-                const tempF = outdoor.temperature?.value;
+                // Get values with fallbacks - VALUES ARE IN CELSIUS FROM JSON
+                const tempC = outdoor.temperature?.value;
                 const humid = outdoor.humidity?.value;
-                const dewF = outdoor.dew_point?.value;
-                const windMph = wind.wind_speed?.value;
-                const gustMph = wind.wind_gust?.value;
+                const dewC = outdoor.dew_point?.value;
+                const windKmh = wind.wind_speed?.value;
+                const gustKmh = wind.wind_gust?.value;
                 const wdir = wind.wind_direction?.value;
                 const pressInHg = pressure.relative?.value;
-                const rainIn = rainfall.rain_rate?.value;
-                const dayRainIn = rainfall.daily?.value;
+                const pressHpa = pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—';
+                const rainMm = rainfall.rain_rate?.value;
+                const dayRainMm = rainfall.daily?.value;
                 const solar = solar_uvi.solar?.value;
                 const uv = solar_uvi.uvi?.value;
 
+                // FIXED DISPLAY LOGIC - Show Celsius first, then Fahrenheit conversion
                 const rows = [
-                    row('temperature', `${tempF ?? '—'} °F (${tempF ? fToC(parseFloat(tempF)).toFixed(1) : '—'} °C)`),
-                    row('feels like', `${outdoor.feels_like?.value ?? '—'} °F (${outdoor.feels_like?.value ? fToC(parseFloat(outdoor.feels_like.value)).toFixed(1) : '—'} °C)`),
+                    row('temperature', `${tempC ?? '—'} °C (${tempC ? cToF(parseFloat(tempC)).toFixed(1) : '—'} °F)`),
+                    row('feels like', `${outdoor.feels_like?.value ?? '—'} °C (${outdoor.feels_like?.value ? cToF(parseFloat(outdoor.feels_like.value)).toFixed(1) : '—'} °F)`),
                     row('humidity', `${humid ?? '—'} %`),
-                    row('dew point', `${dewF ?? '—'} °F (${dewF ? fToC(parseFloat(dewF)).toFixed(1) : '—'} °C)`),
-                    row('wind', `${windMph ?? '—'} mph (${windMph ? mphToMs(parseFloat(windMph)).toFixed(1) : '—'} m/s) dir ${wdir ?? '—'}°`),
-                    row('gust', `${gustMph ?? '—'} mph (${gustMph ? mphToMs(parseFloat(gustMph)).toFixed(1) : '—'} m/s)`),
-                    row('pressure', `${pressInHg ?? '—'} inHg (${pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—'} hPa)`),
-                    row('rain rate', `${rainIn ?? '—'} in/hr (${rainIn ? inToMm(parseFloat(rainIn)).toFixed(2) : '—'} mm/hr)`),
-                    row('rain today', `${dayRainIn ?? '—'} in (${dayRainIn ? inToMm(parseFloat(dayRainIn)).toFixed(1) : '—'} mm)`),
+                    row('dew point', `${dewC ?? '—'} °C (${dewC ? cToF(parseFloat(dewC)).toFixed(1) : '—'} °F)`),
+                    row('wind', `${windKmh ?? '—'} km/h (${windKmh ? kmhToMph(parseFloat(windKmh)).toFixed(1) : '—'} mph) dir ${wdir ?? '—'}°`),
+                    row('gust', `${gustKmh ?? '—'} km/h (${gustKmh ? kmhToMph(parseFloat(gustKmh)).toFixed(1) : '—'} mph)`),
+                    row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
+                    row('rain rate', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
+                    row('rain today', `${dayRainMm ?? '—'} mm (${dayRainMm ? mmToIn(parseFloat(dayRainMm)).toFixed(1) : '—'} in)`),
                     row('solar', `${solar ?? '—'} W/m²`),
                     row('uv index', uv ?? '—'),
                     row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
@@ -286,7 +289,8 @@
 
                 // Add indoor data if available
                 if (ecowitt.indoor) {
-                    rows.splice(3, 0, row('indoor temp', `${ecowitt.indoor.temperature?.value ?? '—'} °F (${ecowitt.indoor.temperature?.value ? fToC(parseFloat(ecowitt.indoor.temperature.value)).toFixed(1) : '—'} °C)`));
+                    const indoorTempC = ecowitt.indoor.temperature?.value;
+                    rows.splice(3, 0, row('indoor temp', `${indoorTempC ?? '—'} °C (${indoorTempC ? cToF(parseFloat(indoorTempC)).toFixed(1) : '—'} °F)`));
                     rows.splice(4, 0, row('indoor humidity', `${ecowitt.indoor.humidity?.value ?? '—'} %`));
                 }
 
@@ -298,6 +302,10 @@
                 document.getElementById('status').className = "muted err";
             }
         }
+
+        // ADD MISSING CONVERSION FUNCTIONS
+        function inHgToHpa(i){ return i * 33.8638866667; }
+        function mphToKmh(m){ return m * 1.60934; }
 
         // Initialize the map
         function initMap() {
@@ -375,16 +383,17 @@
             displayData.forEach(row => {
                 const tr = document.createElement('tr');
                 
+                // Updated to match Celsius units and metric system
                 tr.innerHTML = `
                     <td class="timestamp">${formatTimestamp(row.timestamp)}</td>
-                    <td>${row.temperature_f}</td>
+                    <td>${row.temperature_c ?? row.temperature_f}</td>
                     <td>${row.humidity_pct}</td>
-                    <td>${row.dew_point_f}</td>
-                    <td>${row.feels_like_f}</td>
-                    <td>${row.wind_speed_mph}</td>
-                    <td>${row.wind_gust_mph}</td>
-                    <td>${row.pressure_inhg}</td>
-                    <td>${row.rain_rate_inhr}</td>
+                    <td>${row.dew_point_c ?? row.dew_point_f}</td>
+                    <td>${row.feels_like_c ?? row.feels_like_f}</td>
+                    <td>${row.wind_speed_kmh ?? row.wind_speed_mph}</td>
+                    <td>${row.wind_gust_kmh ?? row.wind_gust_mph}</td>
+                    <td>${row.pressure_hpa ?? row.pressure_inhg}</td>
+                    <td>${row.rain_rate_mmhr ?? row.rain_rate_inhr}</td>
                     <td>${row.solar_wm2}</td>
                 `;
                 

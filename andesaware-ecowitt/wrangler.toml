@@ -9,4 +9,4 @@ binding = "WEATHER_KV"
 id = "ab86dc440d124205add2197b83bfcefd"
 
 [triggers]
-crons = ["*/5 * * * *"]  # Every 5 minutes instead of 2
+crons = ["*/30 * * * *"]  # Every 30 minutes 

@@ -64,7 +64,7 @@ export default {
       },
       { 
         id: "AW002", 
-        mac: "REPLACE_WITH_AW002_REAL_MAC",
+        mac: "CC:7B:5C:51:58:E1",
         name: "AW002 Location Name",
         csvFile: "AW002.csv",
         location: "AW002 Location",
@@ -72,7 +72,7 @@ export default {
       },
       { 
         id: "AW003", 
-        mac: "REPLACE_WITH_AW003_REAL_MAC",
+        mac: "24:D7:EB:EA:E5:EC",
         name: "AW003 Location Name", 
         csvFile: "AW003.csv",
         location: "AW003 Location",
@@ -80,7 +80,7 @@ export default {
       },
       { 
         id: "AW004", 
-        mac: "REPLACE_WITH_AW004_REAL_MAC",
+        mac: "EC:64:C9:F1:CC:74",
         name: "AW004 Location Name",
         csvFile: "AW004.csv",
         location: "AW004 Location",
@@ -88,7 +88,7 @@ export default {
       },
       { 
         id: "AW005", 
-        mac: "REPLACE_WITH_AW005_REAL_MAC",
+        mac: "CC:7B:5C:51:55:E9",
         name: "AW005 Location Name",
         csvFile: "AW005.csv",
         location: "AW005 Location",

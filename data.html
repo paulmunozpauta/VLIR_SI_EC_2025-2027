@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time monitoring</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="nav-placeholder"></div>
+    
+<div class="image-banner hero-small" style="background-image: url('images/background.jpg');">
+  <div class="text-overlay">Real-time monitoring</div>
+</div>
+
+    <!-- Content -->
+    <main>
+        <!-- <h1 class="page-title">Weather Stations Network</h1>
+        <p class="page-subtitle">Real-time environmental monitoring across multiple locations</p> -->
+        <div class="stations-grid">
+            <!-- Station 1 -->
+            <div class="station-card">
+                <!-- <img src="images/station1.jpg" alt="AW001 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
+                <div class="station-content">
+                    <h3 class="station-name">AW001: tbd</h3>
+                    <p class="station-location">Cuenca, Ecuador</p>
+                    <span class="station-status status-online">● Online</span>
+                    <p class="station-description">--</p>
+                    <a href="data1.html" class="view-data-btn">View Live Data</a>
+                </div>
+            </div>
+
+            <!-- Station 2 -->
+            <div class="station-card">
+                <!-- <img src="images/station2.jpg" alt="AW002 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
+                <div class="station-content">
+                    <h3 class="station-name">AW002: tbd</h3>
+                    <p class="station-location">Cuenca, Ecuador</p>
+                    <span class="station-status status-online">● Online</span>
+                    <p class="station-description">--</p>
+                    <a href="data2.html" class="view-data-btn">View Live Data</a>
+                </div>
+            </div>
+
+            <!-- Station 3 -->
+            <div class="station-card">
+                <!-- <img src="images/station3.jpg" alt="AW003 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
+                <div class="station-content">
+                    <h3 class="station-name">AW003: tbd </h3>
+                    <p class="station-location">Cuenca, Ecuador</p>
+                    <span class="station-status status-online">● Online</span>
+                    <p class="station-description">--</p>
+                    <a href="data3.html" class="view-data-btn">View Live Data</a>
+                </div>
+            </div>
+
+            <!-- Station 4 -->
+            <div class="station-card">
+                <!-- <img src="images/station4.jpg" alt="AW004 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
+                <div class="station-content">
+                    <h3 class="station-name">AW004: tbd</h3>
+                    <p class="station-location">Cuenca, Ecuador</p>
+                    <span class="station-status status-online">● Online</span>
+                    <p class="station-description">--</p>
+                    <a href="data4.html" class="view-data-btn">View Live Data</a>
+                </div>
+            </div>
+
+            <!-- Station 5 -->
+            <div class="station-card">
+                <!-- <img src="images/station5.jpg" alt="AW005 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
+                <div class="station-content">
+                    <h3 class="station-name">AW005: Building</h3>
+                    <p class="station-location">Kessel-Lo, Belgium</p>
+                    <span class="station-status status-online">● Online</span>
+                    <p class="station-description">Testing phase of sensors.</p>
+                    <a href="data5.html" class="view-data-btn">View Live Data</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+        
+    </main>
+    <!-- Footer will be inserted here -->
+    <div id="footer-placeholder"></div>
+
+
+
+
+
+<!-- Components auto-loaded -->
+<script>
+async function loadComponents() {
+    const res = await fetch('components.html');
+    const text = await res.text();
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = text;
+
+    const logoBar = tempDiv.querySelector('#logo-bar');
+    if (logoBar) {
+    document.body.insertBefore(logoBar, document.body.firstChild);
+    }
+
+    const nav = tempDiv.querySelector('#shared-nav');
+    if (nav) {
+    const main = document.querySelector('main');
+    document.body.insertBefore(nav, main || document.body.firstChild);
+    }
+
+    const footer = tempDiv.querySelector('#shared-footer');
+    if (footer) {
+    document.body.appendChild(footer);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', loadComponents);
+</script>
+</body>
+</html>

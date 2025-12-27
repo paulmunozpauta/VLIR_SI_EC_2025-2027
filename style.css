@@ -391,7 +391,7 @@ ul li {
 }
 
 .station-photo img {
-    max-width: 70%;
+    max-width: 40%;
     height: auto;
     border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);

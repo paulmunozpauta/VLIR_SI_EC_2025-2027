@@ -445,6 +445,17 @@
             tableInfo.textContent = `✓ Loaded ${data.length} records (showing last ${displayData.length})`;
         }
 
+        function filterLastHours(data, hours = 10) {
+            const now = Date.now();
+            const cutoff = now - hours * 60 * 60 * 1000;
+
+            return (data || []).filter(r => {
+                const t = new Date(r.timestamp).getTime();
+                return Number.isFinite(t) && t >= cutoff;
+            });
+        }
+
+
         // Fetch CSV data from GitHub
         async function loadCSVData() {
             try {
@@ -459,11 +470,17 @@
                 const csvText = await response.text();
                 console.log('Raw CSV data:', csvText); // Debug log
                 
+                
+                
                 const csvData = parseCSV(csvText);
                 console.log('Parsed CSV data:', csvData); // Debug log
-                
-                populateTable(csvData);
-                
+
+                // keep only last 10 hours
+                const last10h = filterLastHours(csvData, 10);
+
+                populateTable(last10h);
+
+
             } catch (error) {
                 console.error('Error loading CSV:', error);
                 document.getElementById('table-info').textContent = `Error loading data: ${error.message}`;

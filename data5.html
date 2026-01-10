@@ -400,7 +400,13 @@
                             value = parseFloat(value);
                         }
                         
+                        if (header === 'timestamp') {
+                        // remove BOM, remove surrounding quotes, trim spaces
+                        value = value.replace(/^\uFEFF/, '').replace(/^"|"$/g, '').trim();
+                        }
                         row[header] = value;
+
+
                     } else {
                         row[header] = '';
                     }

@@ -480,7 +480,7 @@
                 tableBody.appendChild(tr);
             });
             
-            tableInfo.textContent = `✓ Loaded ${data.length} records (showing last ${displayData.length})`;
+            tableInfo.textContent = `✓ Showing last ${displayData.length} records`;
         }
 
         
@@ -601,8 +601,8 @@
     updateChart(tempChart, x, temp);
     updateChart(humChart, x, hum);
 
-    document.getElementById("temp-chart-info").textContent = `✓ Plotted ${x.length} points`;
-    document.getElementById("hum-chart-info").textContent = `✓ Plotted ${x.length} points`;
+    document.getElementById("temp-chart-info").textContent = `✓ Plotting last ${x.length} records`;
+    document.getElementById("hum-chart-info").textContent = `✓ Plotting ${x.length} records`;
     }
 
 

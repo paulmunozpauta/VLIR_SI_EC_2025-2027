@@ -402,3 +402,34 @@ ul li {
     font-size: 0.9rem;
     color: #666;
 }
+.chart-section {
+  margin-top: 2.5rem;
+  border-top: 1px solid #e0e0e0;
+  padding-top: 1.5rem;
+}
+
+.chart-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  padding: 1rem;
+}
+
+.chart-title {
+  margin: 0 0 .75rem 0;
+  font-size: 1.05rem;
+  color: #333;
+}
+
+
+.chart-wrap {
+  height: 320px;      /* controls the chart height */
+  width: 100%;
+  position: relative; /* recommended for Chart.js sizing */
+}
+
+.chart-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}

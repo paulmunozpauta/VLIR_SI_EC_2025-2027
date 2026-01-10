@@ -266,7 +266,6 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
     
     // Append new row
     const newContent = existingContent + csvRow + '\n';
-    
     const updateResponse = await fetch(csvUrl, {
       method: 'PUT',
       headers,

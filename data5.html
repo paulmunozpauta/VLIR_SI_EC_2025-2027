@@ -181,7 +181,10 @@
     <main>
         <h1>AW005: Universidad de Concepción, campus Chillán (Chile)</h1>
         <div id="status" class="muted">loading…</div>
-        <dl class="grid" id="out"></dl>
+        <div class="current-card">
+        <div class="current-grid" id="out"></div>
+        </div>
+
 
         <!-- Station Location Map Section -->
         <div class="map-section">
@@ -271,7 +274,14 @@
         function hpaToInHg(h){ return h * 0.02953; }
         function mmToIn(mm){ return mm * 0.0393701; }
 
-        function row(k, v){ return `<dt class="k">${k}</dt><dd class="v">${v}</dd>`; }
+        function row(k, v){
+  return `
+    <div class="current-item">
+      <div class="k">${k}</div>
+      <div class="v">${v}</div>
+    </div>
+  `;
+}
 
         async function load(){
             const status = document.getElementById('status');
@@ -312,19 +322,22 @@
                     row('gust', `${gustKmh ?? '—'} km/h (${gustKmh ? kmhToMph(parseFloat(gustKmh)).toFixed(1) : '—'} mph)`),
                     row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
                     row('rain rate', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
-                    row('rain today', `${dayRainMm ?? '—'} mm (${dayRainMm ? mmToIn(parseFloat(dayRainMm)).toFixed(1) : '—'} in)`),
+                    /* row('rain today', `${dayRainMm ?? '—'} mm (${dayRainMm ? mmToIn(parseFloat(dayRainMm)).toFixed(1) : '—'} in)`),
+                    */
                     row('solar', `${solar ?? '—'} W/m²`),
                     row('uv index', uv ?? '—'),
-                    row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
+                    /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
+                */
                 ];
 
                 // Add indoor data if available
+                /*
                 if (ecowitt.indoor) {
                     const indoorTempC = ecowitt.indoor.temperature?.value;
                     rows.splice(3, 0, row('indoor temp', `${indoorTempC ?? '—'} °C (${indoorTempC ? cToF(parseFloat(indoorTempC)).toFixed(1) : '—'} °F)`));
                     rows.splice(4, 0, row('indoor humidity', `${ecowitt.indoor.humidity?.value ?? '—'} %`));
                 }
-
+                */
                 document.getElementById('out').innerHTML = rows.join('');
                 status.textContent = `updated ${new Date().toLocaleTimeString()} • refresh ${REFRESH_MS/1000}s`;
                 status.className = "muted ok";

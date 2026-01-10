@@ -433,3 +433,49 @@ ul li {
   height: 100% !important;
   display: block;
 }
+.current-card {
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.current-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 2rem;
+  row-gap: 0.75rem;
+}
+
+.k {
+  font-size: 0.85rem;
+  color: #6b7280; /* muted gray */
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.v {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.current-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  border-bottom: 1px dashed #e5e7eb;
+  padding-bottom: 0.4rem;
+}
+
+.current-item:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 768px) {
+  .current-grid {
+    grid-template-columns: 1fr;
+  }
+}

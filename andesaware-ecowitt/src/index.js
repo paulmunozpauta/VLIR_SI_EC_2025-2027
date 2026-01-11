@@ -264,8 +264,14 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
       existingContent = 'timestamp,temperature_c,humidity_pct,dew_point_c,feels_like_c,wind_speed_ms,wind_gust_ms,wind_direction_deg,pressure_hpa,rain_rate_mmhr,daily_rain_mm,solar_wm2,uv_index,indoor_temp_c,indoor_humidity_pct\n';
     }
     
-    // Append new row
-    const newContent = existingContent + csvRow + '\n';
+    // Append new row const newContent = existingContent + csvRow + '\n';
+    
+    // Append new row safely: ensure file ends with newline
+    const normalized = existingContent.replace(/\r/g, '');
+    const safeBase = normalized.endsWith('\n') ? normalized : (normalized + '\n');
+    const newContent = safeBase + csvRow + '\n';
+
+    
     const updateResponse = await fetch(csvUrl, {
       method: 'PUT',
       headers,

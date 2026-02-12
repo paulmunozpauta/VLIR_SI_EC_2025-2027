@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Station - Kessel-Lo</title>
+    <title>Weather Station 005</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -179,16 +179,44 @@
 
     <!-- Content -->
     <main>
-        <h1>AW002: Location 2</h1>
+        <h1>AW002: Misicata (Cuenca)</h1>
         <div id="status" class="muted">loading…</div>
-        <dl class="grid" id="out"></dl>
+        <div class="current-card">
+        <div class="current-grid" id="out"></div>
+        </div>
+
 
         <!-- Station Location Map Section -->
         <div class="map-section">
             <h2>Location</h2>
             <div id="station-map"></div>
-            <div class="coordinates">Coordinates: 50.90241987188318, 4.720330533578788</div>
+            <div class="coordinates">Coordinates: -2.9093447, -79.0616345</div>
         </div>
+
+        <div class="station-photo">
+            <img src="images/Pictures/station_aw002.jpeg" alt="Weather station AW002 - Misicata, Cuenca">
+        </div>
+
+        <div class="chart-section">
+        <h2>Historical</h2>
+
+        <div class="chart-card">
+        <h3 class="chart-title">Temperature (°C)</h3>
+        <div class="chart-wrap">
+            <canvas id="temp-chart"></canvas>
+        </div>
+        <div class="muted" id="temp-chart-info">Loading…</div>
+        </div>
+
+        <div class="chart-card" style="margin-top: 1rem;">
+        <h3 class="chart-title">Humidity (%)</h3>
+        <div class="chart-wrap">
+            <canvas id="hum-chart"></canvas>
+        </div>
+        <div class="muted" id="hum-chart-info">Loading…</div>
+        </div>
+        </div>
+
 
         <!-- Historical Data Section -->
         <div class="historical-section">
@@ -236,7 +264,9 @@
         const CSV_URL = "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW002.csv";
 
         // Station coordinates
-        const STATION_COORDS = [50.90241987188318, 4.720330533578788];
+        const STATION_COORDS = [-2.9093447, -79.0616345];
+
+
 
         // CORRECTED CONVERSION FUNCTIONS
         function cToF(c){ return (c * 9/5) + 32; }  // Fixed: Celsius to Fahrenheit
@@ -244,7 +274,14 @@
         function hpaToInHg(h){ return h * 0.02953; }
         function mmToIn(mm){ return mm * 0.0393701; }
 
-        function row(k, v){ return `<dt class="k">${k}</dt><dd class="v">${v}</dd>`; }
+        function row(k, v){
+  return `
+    <div class="current-item">
+      <div class="k">${k}</div>
+      <div class="v">${v}</div>
+    </div>
+  `;
+}
 
         async function load(){
             const status = document.getElementById('status');
@@ -285,19 +322,22 @@
                     row('gust', `${gustKmh ?? '—'} km/h (${gustKmh ? kmhToMph(parseFloat(gustKmh)).toFixed(1) : '—'} mph)`),
                     row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
                     row('rain rate', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
-                    row('rain today', `${dayRainMm ?? '—'} mm (${dayRainMm ? mmToIn(parseFloat(dayRainMm)).toFixed(1) : '—'} in)`),
+                    /* row('rain today', `${dayRainMm ?? '—'} mm (${dayRainMm ? mmToIn(parseFloat(dayRainMm)).toFixed(1) : '—'} in)`),
+                    */
                     row('solar', `${solar ?? '—'} W/m²`),
                     row('uv index', uv ?? '—'),
-                    row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
+                    /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
+                */
                 ];
 
                 // Add indoor data if available
+                /*
                 if (ecowitt.indoor) {
                     const indoorTempC = ecowitt.indoor.temperature?.value;
                     rows.splice(3, 0, row('indoor temp', `${indoorTempC ?? '—'} °C (${indoorTempC ? cToF(parseFloat(indoorTempC)).toFixed(1) : '—'} °F)`));
                     rows.splice(4, 0, row('indoor humidity', `${ecowitt.indoor.humidity?.value ?? '—'} %`));
                 }
-
+                */
                 document.getElementById('out').innerHTML = rows.join('');
                 status.textContent = `updated ${new Date().toLocaleTimeString()} • refresh ${REFRESH_MS/1000}s`;
                 status.className = "muted ok";
@@ -322,7 +362,7 @@
             
             // Add a marker for the weather station
             const stationMarker = L.marker(STATION_COORDS).addTo(map)
-                .bindPopup('Weather Station Location<br>Kessel-Lo, Belgium')
+                .bindPopup('Weather Station Location<br>Misicata (Cuenca), Ecuador')
                 .openPopup();
             
             // Add a circle to highlight the location
@@ -373,7 +413,13 @@
                             value = parseFloat(value);
                         }
                         
+                        if (header === 'timestamp') {
+                        // remove BOM, remove surrounding quotes, trim spaces
+                        value = value.replace(/^\uFEFF/, '').replace(/^"|"$/g, '').trim();
+                        }
                         row[header] = value;
+
+
                     } else {
                         row[header] = '';
                     }
@@ -434,8 +480,143 @@
                 tableBody.appendChild(tr);
             });
             
-            tableInfo.textContent = `✓ Loaded ${data.length} records (showing last ${displayData.length})`;
+            tableInfo.textContent = `✓ Showing last ${displayData.length} records`;
         }
+
+        
+    let tempChart = null;
+    let humChart = null;
+
+    function makeLineChart(canvasId, yTitle, labelText) {
+    const canvas = document.getElementById(canvasId);
+
+    return new Chart(canvas, {
+        type: "line",
+        data: {
+        datasets: [{
+            label: labelText,
+            data: [],            // will be [{x:..., y:...}, ...]
+            tension: 0.25,
+            pointRadius: 0,
+            borderWidth: 2
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: false } },
+        scales: {
+            x: {
+            type: "time",
+            time: {
+                unit: "hour",
+                tooltipFormat: "PP HH:mm"
+            },
+            ticks: {
+                autoSkip: true,
+                maxRotation: 0,
+                callback: function(value, index, ticks) {
+                // value is a timestamp (ms)
+                const d = new Date(value);
+
+                // first tick always shows date + time
+                if (index === 0) {
+                    return d.toLocaleString([], { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+                }
+
+                // if day changed vs previous tick, show date + time
+                const prev = new Date(ticks[index - 1].value);
+                const dayChanged =
+                    d.getFullYear() !== prev.getFullYear() ||
+                    d.getMonth() !== prev.getMonth() ||
+                    d.getDate() !== prev.getDate();
+
+                if (dayChanged) {
+                    return d.toLocaleString([], { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+                }
+
+                // otherwise just show hour
+                return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                }
+            }
+            },
+
+
+
+            y: { title: { display: true, text: yTitle } }
+        }
+        }
+    });
+    }
+
+
+    function updateChart(chart, x, y) {
+    chart.data.datasets[0].data = x.map((xi, i) => ({ x: xi, y: y[i] }));
+    chart.update("none");
+    }
+
+
+    function toNumberOrNull(v) {
+    const n = (typeof v === "number") ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+    }
+
+
+    function buildSeries(data) {
+    const sorted = [...(data || [])].sort((a, b) =>
+        new Date(a.timestamp) - new Date(b.timestamp)
+    );
+
+    const x = [];
+    const temp = [];
+    const hum = [];
+
+    for (const r of sorted) {
+        const d = new Date(r.timestamp);
+        if (!Number.isFinite(d.getTime())) continue;
+
+        x.push(d.getTime()); // numeric timestamp (ms)
+        temp.push(toNumberOrNull(r.temperature_c));
+        hum.push(toNumberOrNull(r.humidity_pct));
+    }
+
+    return { x, temp, hum };
+    }
+
+
+    function renderHistoricalCharts(data) {
+    const { x, temp, hum } = buildSeries(data);
+
+    if (!x.length) {
+        document.getElementById("temp-chart-info").textContent = "No valid timestamps to plot.";
+        document.getElementById("hum-chart-info").textContent = "No valid timestamps to plot.";
+        return;
+    }
+
+    if (!tempChart) tempChart = makeLineChart("temp-chart", "°C", "Temperature (°C)");
+    if (!humChart) humChart = makeLineChart("hum-chart", "%", "Humidity (%)");
+
+    updateChart(tempChart, x, temp);
+    updateChart(humChart, x, hum);
+
+    document.getElementById("temp-chart-info").textContent = `✓ Plotting last ${x.length} records`;
+    document.getElementById("hum-chart-info").textContent = `✓ Plotting ${x.length} records`;
+    }
+
+
+
+        function filterLastHours(data, hours = 10) {
+            const now = Date.now();
+            const cutoff = now - hours * 60 * 60 * 1000;
+
+            return (data || []).filter(r => {
+                const t = new Date(r.timestamp).getTime();
+                return Number.isFinite(t) && t >= cutoff;
+            });
+        }
+
 
         // Fetch CSV data from GitHub
         async function loadCSVData() {
@@ -451,11 +632,19 @@
                 const csvText = await response.text();
                 console.log('Raw CSV data:', csvText); // Debug log
                 
+                
+                
                 const csvData = parseCSV(csvText);
                 console.log('Parsed CSV data:', csvData); // Debug log
-                
-                populateTable(csvData);
-                
+
+                // keep only last 100 hours for charts
+                renderHistoricalCharts(csvData);
+
+                // keep only last 10 hours for table
+                const last10h = filterLastHours(csvData, 10);
+                populateTable(last10h);
+
+
             } catch (error) {
                 console.error('Error loading CSV:', error);
                 document.getElementById('table-info').textContent = `Error loading data: ${error.message}`;
@@ -500,7 +689,7 @@
                 
                 document.getElementById('footer-placeholder').innerHTML = `
                     <footer style="text-align: center; padding: 2rem; background: #f5f5f5;">
-                        <p>Weather Station Data - Kessel-Lo</p>
+                        <p>Weather Station Data - Universidad de Concepción (campus Chillán), Chile</p>
                     </footer>
                 `;
             }
@@ -520,7 +709,13 @@
             
             // Load historical CSV data from GitHub
             loadCSVData();
+
         });
     </script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+
 </body>
 </html>

@@ -179,7 +179,7 @@
 
     <!-- Content -->
     <main>
-        <h1>AW002: Misicata (Cuenca)</h1>
+        <h1>AW002: Campus Universidad de Cuenca (Balzay)</h1>
         <div id="status" class="muted">loading…</div>
         <div class="current-card">
         <div class="current-grid" id="out"></div>
@@ -190,11 +190,11 @@
         <div class="map-section">
             <h2>Location</h2>
             <div id="station-map"></div>
-            <div class="coordinates">Coordinates: -2.9093447, -79.0616345</div>
+            <div class="coordinates">Coordinates: -2.892421625465115, -79.03559049172041</div>
         </div>
 
         <div class="station-photo">
-            <img src="images/Pictures/station_aw002.jpeg" alt="Weather station AW002 - Misicata, Cuenca">
+            <img src="images/Pictures/station_aw002.jpeg">
         </div>
 
         <div class="chart-section">
@@ -264,7 +264,7 @@
         const CSV_URL = "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW002.csv";
 
         // Station coordinates
-        const STATION_COORDS = [-2.9093447, -79.0616345];
+        const STATION_COORDS = [-2.892421625465115, -79.03559049172041];
 
 
 
@@ -362,7 +362,7 @@
             
             // Add a marker for the weather station
             const stationMarker = L.marker(STATION_COORDS).addTo(map)
-                .bindPopup('Weather Station Location<br>Misicata (Cuenca), Ecuador')
+                .bindPopup('AW002')
                 .openPopup();
             
             // Add a circle to highlight the location

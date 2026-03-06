@@ -1,122 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-time monitoring</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-time monitoring</title>
+
+<link rel="stylesheet" href="style.css">
+
+<!-- Leaflet map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+#stations-map{
+    width:90%;
+    max-width:1200px;
+    height:450px;
+    margin:40px auto;
+    border-radius:12px;
+    overflow:hidden;
+}
+.map-title{
+    text-align:center;
+    margin-top:30px;
+}
+</style>
+
 </head>
+
 <body>
-    <!-- Navigation will be inserted here -->
-    <div id="nav-placeholder"></div>
-    
+
+<!-- Navigation placeholder -->
+<div id="nav-placeholder"></div>
+
 <div class="image-banner hero-small" style="background-image: url('images/background.jpg');">
-  <div class="text-overlay">Real-time monitoring</div>
+<div class="text-overlay">Real-time monitoring</div>
 </div>
 
-    <!-- Content -->
-    <main>
-        <!-- <h1 class="page-title">Weather Stations Network</h1>
-        <p class="page-subtitle">Real-time environmental monitoring across multiple locations</p> -->
-        <div class="stations-grid">
-            <!-- Station 1 -->
-            <div class="station-card">
-                <!-- <img src="images/station1.jpg" alt="AW001 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
-                <div class="station-content">
-                    <h3 class="station-name">AW001: Campus Universidad de Cuenca</h3>
-                    <p class="station-location">Cuenca, Ecuador</p>
-                    <span class="station-status status-online">● Online</span>
-                    <p class="station-description">Sensor evaluation phase</p>
-                    <a href="data1.html" class="view-data-btn">View Live Data</a>
-                </div>
-            </div>
+<main>
 
-            <!-- Station 2 -->
-            <div class="station-card">
-                <!-- <img src="images/station2.jpg" alt="AW002 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1501630834273-4b5604d2ee31?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
-                <div class="station-content">
-                    <h3 class="station-name">AW002: Campus Universidad de Cuenca</h3>
-                    <p class="station-location">Cuenca, Ecuador</p>
-                    <span class="station-status status-online">● Online</span>
-                    <p class="station-description">Sensor evaluation phase</p>
-                    <a href="data2.html" class="view-data-btn">View Live Data</a>
-                </div>
-            </div>
+<h2 class="map-title">Stations map</h2>
+<div id="stations-map"></div>
 
-            <!-- Station 3 -->
-            <div class="station-card">
-                <!-- <img src="images/station3.jpg" alt="AW003 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
-                <div class="station-content">
-                    <h3 class="station-name">AW003: Campus Universidad de Cuenca</h3>
-                    <p class="station-location">Cuenca, Ecuador</p>
-                    <span class="station-status status-online">● Online</span>
-                    <p class="station-description">Sensor evaluation phase</p>
-                    <a href="data3.html" class="view-data-btn">View Live Data</a>
-                </div>
-            </div>
-            <!-- Station 4 -->
-            <div class="station-card">
-                <!-- <img src="images/station4.jpg" alt="AW004 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
-                <div class="station-content">
-                    <h3 class="station-name">AW004: Campus Universidad de Cuenca</h3>
-                    <p class="station-location">Cuenca, Ecuador</p>
-                    <span class="station-status status-online">● Online</span>
-                    <p class="station-description">Sensor evaluation phase</p>
-                    <a href="data4.html" class="view-data-btn">View Live Data</a>
-                </div>
-            </div>
+<div class="stations-grid">
 
-            <!-- Station 5 -->
-            <div class="station-card">
-                <!-- <img src="images/station5.jpg" alt="AW005 Station" class="station-image" onerror="this.src='https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'"> -->
-                <div class="station-content">
-                    <h3 class="station-name">AW005: Campus Universidad de Concepción</h3>
-                    <p class="station-location">Chillán, Chile</p>
-                    <span class="station-status status-online">● Online</span>
-                    <p class="station-description">Sensor evaluation phase</p>
-                    <a href="data5.html" class="view-data-btn">View Live Data</a>
-                </div>
-            </div>
-        </div>
-    </main>
+<!-- Station 1 -->
+<div class="station-card">
+<div class="station-content">
+<h3 class="station-name">AW001: Campus Universidad de Cuenca</h3>
+<p class="station-location">Cuenca, Ecuador</p>
+<span class="station-status status-online">● Online</span>
+<p class="station-description">Sensor evaluation phase</p>
+<a href="data1.html" class="view-data-btn">View Live Data</a>
+</div>
+</div>
 
+<!-- Station 2 -->
+<div class="station-card">
+<div class="station-content">
+<h3 class="station-name">AW002: Campus Universidad de Cuenca</h3>
+<p class="station-location">Cuenca, Ecuador</p>
+<span class="station-status status-online">● Online</span>
+<p class="station-description">Sensor evaluation phase</p>
+<a href="data2.html" class="view-data-btn">View Live Data</a>
+</div>
+</div>
 
-        
-    </main>
-    <!-- Footer will be inserted here -->
-    <div id="footer-placeholder"></div>
+<!-- Station 3 -->
+<div class="station-card">
+<div class="station-content">
+<h3 class="station-name">AW003: Campus Universidad de Cuenca</h3>
+<p class="station-location">Cuenca, Ecuador</p>
+<span class="station-status status-online">● Online</span>
+<p class="station-description">Sensor evaluation phase</p>
+<a href="data3.html" class="view-data-btn">View Live Data</a>
+</div>
+</div>
+
+<!-- Station 4 -->
+<div class="station-card">
+<div class="station-content">
+<h3 class="station-name">AW004: Campus Universidad de Cuenca</h3>
+<p class="station-location">Cuenca, Ecuador</p>
+<span class="station-status status-online">● Online</span>
+<p class="station-description">Sensor evaluation phase</p>
+<a href="data4.html" class="view-data-btn">View Live Data</a>
+</div>
+</div>
+
+<!-- Station 5 -->
+<div class="station-card">
+<div class="station-content">
+<h3 class="station-name">AW005: Campus Universidad de Concepción</h3>
+<p class="station-location">Chillán, Chile</p>
+<span class="station-status status-online">● Online</span>
+<p class="station-description">Sensor evaluation phase</p>
+<a href="data5.html" class="view-data-btn">View Live Data</a>
+</div>
+</div>
+
+</div>
+</main>
+
+<!-- Footer -->
+<div id="footer-placeholder"></div>
 
 
+<!-- Map script -->
+<script>
+
+window.addEventListener('DOMContentLoaded', function(){
+
+const map = L.map('stations-map').setView([-10,-75],4);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'© OpenStreetMap'
+}).addTo(map);
+
+const stations = [
+
+{
+name:"AW001",
+coords:[-2.892403625465115, -79.03559049172041],
+popup:"AW001 - Universidad de Cuenca <br><a href='data1.html'>View Live Data</a>"
+},
+
+{
+name:"AW002",
+coords:[-2.892439625465115, -79.03559049172041],
+popup:"AW002 - Universidad de Cuenca <br><a href='data2.html'>View Live Data</a>"
+},
+
+{
+name:"AW003",
+coords:[-2.892421625465115, -79.03557249172041],
+popup:"AW003 - Universidad de Cuenca <br><a href='data3.html'>View Live Data</a>"
+},
+
+{
+name:"AW004",
+coords:[-2.892421625465115, -79.03560849172041],
+popup:"AW004 - Universidad de Cuenca <br><a href='data4.html'>View Live Data</a>"
+},
+
+{
+name:"AW005",
+coords:[-36.595426, -72.081531],
+popup:"AW005 - Universidad de Concepción <br><a href='data5.html'>View Live Data</a>"
+}
+
+];
+
+const bounds=[];
+
+stations.forEach(st=>{
+const marker=L.marker(st.coords).addTo(map);
+marker.bindPopup(st.popup);
+bounds.push(st.coords);
+});
+
+map.fitBounds(bounds,{padding:[40,40]});
+
+});
+
+</script>
 
 
 
 <!-- Components auto-loaded -->
 <script>
+
 async function loadComponents() {
-    const res = await fetch('components.html');
-    const text = await res.text();
 
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = text;
+const res = await fetch('components.html');
+const text = await res.text();
 
-    const logoBar = tempDiv.querySelector('#logo-bar');
-    if (logoBar) {
-    document.body.insertBefore(logoBar, document.body.firstChild);
-    }
+const tempDiv = document.createElement('div');
+tempDiv.innerHTML = text;
 
-    const nav = tempDiv.querySelector('#shared-nav');
-    if (nav) {
-    const main = document.querySelector('main');
-    document.body.insertBefore(nav, main || document.body.firstChild);
-    }
+const logoBar = tempDiv.querySelector('#logo-bar');
+if (logoBar) {
+document.body.insertBefore(logoBar, document.body.firstChild);
+}
 
-    const footer = tempDiv.querySelector('#shared-footer');
-    if (footer) {
-    document.body.appendChild(footer);
-    }
+const nav = tempDiv.querySelector('#shared-nav');
+if (nav) {
+const main = document.querySelector('main');
+document.body.insertBefore(nav, main || document.body.firstChild);
+}
+
+const footer = tempDiv.querySelector('#shared-footer');
+if (footer) {
+document.body.appendChild(footer);
+}
+
 }
 
 window.addEventListener('DOMContentLoaded', loadComponents);
+
 </script>
+
 </body>
 </html>

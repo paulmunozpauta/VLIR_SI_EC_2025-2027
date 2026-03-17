@@ -244,7 +244,7 @@
                             <th>Wind Speed (km/h)</th>
                             <th>Wind Gust (km/h)</th>
                             <th>Pressure (hPa)</th>
-                            <th>Rainfall (mm)</th>
+                            <th>Rain Rate (mm/hr)</th>
                             <th>Rain Today (mm)</th>
                             <th>Solar (W/m²)</th>
                             <th>UV Index</th>
@@ -318,7 +318,7 @@
                 const wdir = wind.wind_direction?.value;
                 const pressInHg = pressure.relative?.value;
                 const pressHpa = pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—';
-                const rainMm = rainfall.event?.value;
+                const rainMm = rainfall.rain_rate?.value;
                 const dayRainMm = rainfall.daily?.value;
                 const solar = solar_uvi.solar?.value;
                 const uv = solar_uvi.uvi?.value;
@@ -393,7 +393,7 @@
             const headers = [
                 'timestamp', 'temperature_c', 'humidity_pct', 'dew_point_c', 'feels_like_c',
                 'wind_speed_kmh', 'wind_gust_kmh', 'wind_direction_deg', 'pressure_inhg',
-                'event_mmhr', 'rain_daily_mm', 'solar_wm2', 'uvi',
+                'rain_rate_mmhr', 'rain_daily_mm', 'solar_wm2', 'uvi'
                 //'indoor_temp_c', 'indoor_humidity_pct'
             ];
             
@@ -480,7 +480,7 @@
                     <td>${row.wind_speed_kmh !== undefined ? row.wind_speed_kmh : '—'}</td>
                     <td>${row.wind_gust_kmh !== undefined ? row.wind_gust_kmh : '—'}</td>
                     <td>${row.pressure_inhg !== undefined ? inHgToHpa(parseFloat(row.pressure_inhg)).toFixed(1) : '—'}</td>
-                    <td>${row.event_mmhr !== undefined ? row.event_mmhr : '—'}</td>
+                    <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
                     <td>${row.rain_daily_mm !== undefined ? row.rain_daily_mm : '—'}</td>
                     <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
                     <td>${row.uvi !== undefined ? row.uvi : '—'}</td>

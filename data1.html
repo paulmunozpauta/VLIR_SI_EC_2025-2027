@@ -198,7 +198,6 @@
         </div>
 
         <div class="chart-section">
-        <h2>Historical</h2>
 
         <div class="chart-card">
         <h3 class="chart-title">Temperature (°C)</h3>
@@ -215,12 +214,20 @@
         </div>
         <div class="muted" id="hum-chart-info">Loading…</div>
         </div>
+
+        <div class="chart-card" style="margin-top: 1rem;">
+            <h3 class="chart-title">Precipitation last 72 hours</h3>
+            <div class="chart-wrap">
+                <canvas id="rain-chart"></canvas>
+            </div>
+            <div class="muted" id="rain-chart-info">Loading…</div>
+        </div>
+
         </div>
 
 
         <!-- Historical Data Section -->
         <div class="historical-section">
-            <h2>Historical data</h2>
             <div class="table-container">
                 <table id="weather-table">
                     <thead>
@@ -237,8 +244,8 @@
                             <th>Rain Today (mm)</th>
                             <th>Solar (W/m²)</th>
                             <th>UV Index</th>
-                            <th>Indoor Temp (°C)</th>
-                            <th>Indoor Humidity (%)</th>
+                           <!-- <th>Indoor Temp (°C)</th>-->
+                           <!-- <th>Indoor Humidity (%)</th>-->
                         </tr>
                     </thead>
                     <tbody id="table-body">
@@ -382,8 +389,8 @@
             const headers = [
                 'timestamp', 'temperature_c', 'humidity_pct', 'dew_point_c', 'feels_like_c',
                 'wind_speed_kmh', 'wind_gust_kmh', 'wind_direction_deg', 'pressure_inhg',
-                'rain_rate_mmhr', 'rain_daily_mm', 'solar_wm2', 'uvi',
-                'indoor_temp_c', 'indoor_humidity_pct'
+                'rain_rate_mmhr', 'rain_daily_mm', 'solar_wm2', 'uvi'
+                //'indoor_temp_c', 'indoor_humidity_pct'
             ];
             
             const data = [];
@@ -454,7 +461,8 @@
                 return;
             }
             
-            // Show only last 60 records (most recent first)
+            // Show only last 60 records (most recent first)                 <td>${row.indoor_temp_c !== undefined ? row.indoor_temp_c : '—'}</td> <td>${row.indoor_humidity_pct !== undefined ? row.indoor_humidity_pct : '—'}</td>
+ 
             const displayData = data.slice(-60).reverse();
             
             displayData.forEach(row => {
@@ -473,9 +481,7 @@
                     <td>${row.rain_daily_mm !== undefined ? row.rain_daily_mm : '—'}</td>
                     <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
                     <td>${row.uvi !== undefined ? row.uvi : '—'}</td>
-                    <td>${row.indoor_temp_c !== undefined ? row.indoor_temp_c : '—'}</td>
-                    <td>${row.indoor_humidity_pct !== undefined ? row.indoor_humidity_pct : '—'}</td>
-                `;
+               `;
                 
                 tableBody.appendChild(tr);
             });
@@ -483,88 +489,94 @@
             tableInfo.textContent = `✓ Showing last ${displayData.length} records`;
         }
 
-        
-    let tempChart = null;
-    let humChart = null;
+let tempChart = null;
+let humChart = null;
+let rainChart = null;
 
-    function makeLineChart(canvasId, yTitle, labelText) {
+function makeLineChart(canvasId, yTitle, labelText) {
     const canvas = document.getElementById(canvasId);
 
     return new Chart(canvas, {
         type: "line",
         data: {
-        datasets: [{
-            label: labelText,
-            data: [],            // will be [{x:..., y:...}, ...]
-            tension: 0.25,
-            pointRadius: 0,
-            borderWidth: 2
-        }]
+            datasets: [{
+                label: labelText,
+                data: [],
+                tension: 0.25,
+                pointRadius: 0,
+                borderWidth: 2
+            }]
         },
         options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        interaction: { mode: "index", intersect: false },
-        plugins: { legend: { display: false } },
-        scales: {
-            x: {
-            type: "time",
-            time: {
-                unit: "hour",
-                tooltipFormat: "PP HH:mm"
-            },
-            ticks: {
-                autoSkip: true,
-                maxRotation: 0,
-                callback: function(value, index, ticks) {
-                // value is a timestamp (ms)
-                const d = new Date(value);
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    type: "time",
+                    time: {
+                        unit: "hour",
+                        tooltipFormat: "PP HH:mm"
+                    },
+                    ticks: {
+                        autoSkip: true,
+                        maxRotation: 0,
+                        callback: function(value, index, ticks) {
+                            const d = new Date(value);
 
-                // first tick always shows date + time
-                if (index === 0) {
-                    return d.toLocaleString([], { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-                }
+                            if (index === 0) {
+                                return d.toLocaleString([], {
+                                    month: "short",
+                                    day: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                });
+                            }
 
-                // if day changed vs previous tick, show date + time
-                const prev = new Date(ticks[index - 1].value);
-                const dayChanged =
-                    d.getFullYear() !== prev.getFullYear() ||
-                    d.getMonth() !== prev.getMonth() ||
-                    d.getDate() !== prev.getDate();
+                            const prev = new Date(ticks[index - 1].value);
+                            const dayChanged =
+                                d.getFullYear() !== prev.getFullYear() ||
+                                d.getMonth() !== prev.getMonth() ||
+                                d.getDate() !== prev.getDate();
 
-                if (dayChanged) {
-                    return d.toLocaleString([], { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-                }
+                            if (dayChanged) {
+                                return d.toLocaleString([], {
+                                    month: "short",
+                                    day: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                });
+                            }
 
-                // otherwise just show hour
-                return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                            return d.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            });
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: yTitle }
                 }
             }
-            },
-
-
-
-            y: { title: { display: true, text: yTitle } }
-        }
         }
     });
-    }
+}
 
-
-    function updateChart(chart, x, y) {
+function updateChart(chart, x, y) {
     chart.data.datasets[0].data = x.map((xi, i) => ({ x: xi, y: y[i] }));
     chart.update("none");
-    }
+}
 
-
-    function toNumberOrNull(v) {
+function toNumberOrNull(v) {
     const n = (typeof v === "number") ? v : parseFloat(v);
     return Number.isFinite(n) ? n : null;
-    }
+}
 
-
-    function buildSeries(data) {
+function buildSeries(data) {
     const sorted = [...(data || [])].sort((a, b) =>
         new Date(a.timestamp) - new Date(b.timestamp)
     );
@@ -572,39 +584,62 @@
     const x = [];
     const temp = [];
     const hum = [];
+    const rain = [];
 
     for (const r of sorted) {
         const d = new Date(r.timestamp);
         if (!Number.isFinite(d.getTime())) continue;
 
-        x.push(d.getTime()); // numeric timestamp (ms)
+        x.push(d.getTime());
         temp.push(toNumberOrNull(r.temperature_c));
         hum.push(toNumberOrNull(r.humidity_pct));
+        rain.push(toNumberOrNull(r.rain_rate_mmhr));
     }
 
-    return { x, temp, hum };
+    return { x, temp, hum, rain };
+}
+
+function filterSeriesLastHours(x, y, hours) {
+    const now = Date.now();
+    const cutoff = now - hours * 60 * 60 * 1000;
+
+    const xf = [];
+    const yf = [];
+
+    for (let i = 0; i < x.length; i++) {
+        if (x[i] >= cutoff) {
+            xf.push(x[i]);
+            yf.push(y[i]);
+        }
     }
 
+    return { x: xf, y: yf };
+}
 
-    function renderHistoricalCharts(data) {
-    const { x, temp, hum } = buildSeries(data);
+function renderHistoricalCharts(data) {
+    const { x, temp, hum, rain } = buildSeries(data);
 
     if (!x.length) {
         document.getElementById("temp-chart-info").textContent = "No valid timestamps to plot.";
         document.getElementById("hum-chart-info").textContent = "No valid timestamps to plot.";
+        document.getElementById("rain-chart-info").textContent = "No valid timestamps to plot.";
         return;
     }
 
     if (!tempChart) tempChart = makeLineChart("temp-chart", "°C", "Temperature (°C)");
     if (!humChart) humChart = makeLineChart("hum-chart", "%", "Humidity (%)");
+    if (!rainChart) rainChart = makeLineChart("rain-chart", "mm/hr", "Precipitation (mm/hr)");
 
     updateChart(tempChart, x, temp);
     updateChart(humChart, x, hum);
 
-    document.getElementById("temp-chart-info").textContent = `✓ Plotting last ${x.length} records`;
-    document.getElementById("hum-chart-info").textContent = `✓ Plotting ${x.length} records`;
-    }
+    const rain72 = filterSeriesLastHours(x, rain, 72);
+    updateChart(rainChart, rain72.x, rain72.y);
 
+    document.getElementById("temp-chart-info").textContent = `✓ Plotting ${x.length} records`;
+    document.getElementById("hum-chart-info").textContent = `✓ Plotting ${x.length} records`;
+    document.getElementById("rain-chart-info").textContent = `✓ Plotting last ${rain72.x.length} records from the last 72 hours`;
+}
 
 
         function filterLastHours(data, hours = 10) {

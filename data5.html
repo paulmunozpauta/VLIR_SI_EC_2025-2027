@@ -284,7 +284,6 @@
         function kmhToMph(km){ return km * 0.621371; }
         function hpaToInHg(h){ return h * 0.02953; }
         function mmToIn(mm){ return mm * 0.0393701; }
-
         function row(k, v){
   return `
     <div class="current-item">
@@ -334,7 +333,6 @@
                     row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
                     row('rainfall', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
                     row('hourly rain', `${hourlyRainMm ?? '—'} mm (${hourlyRainMm ? mmToIn(parseFloat(hourlyRainMm)).toFixed(2) : '—'} in)`),
-
                     row('solar', `${solar ?? '—'} W/m²`),
                     row('uv index', uv ?? '—'),
                     /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
@@ -393,7 +391,7 @@
             const headers = [
                 'timestamp', 'temperature_c', 'humidity_pct', 'dew_point_c', 'feels_like_c',
                 'wind_speed_kmh', 'wind_gust_kmh', 'wind_direction_deg', 'pressure_inhg',
-                'rain_rate_mmhr', 'rain_hourly_mm', 'solar_wm2', 'uvi'
+                'rain_rate_mmhr', 'hourly_rain_mm', 'solar_wm2', 'uvi'
                 //'indoor_temp_c', 'indoor_humidity_pct'
             ];
             

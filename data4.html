@@ -389,7 +389,7 @@
             const headers = [
                 'timestamp', 'temperature_c', 'humidity_pct', 'dew_point_c', 'feels_like_c',
                 'wind_speed_kmh', 'wind_gust_kmh', 'wind_direction_deg', 'pressure_inhg',
-                'rain_rate_mmhr', 'rain_hourly_mm', 'solar_wm2', 'uvi'
+                'rain_rate_mmhr', 'hourly_rain_mm', 'solar_wm2', 'uvi'
                 //'indoor_temp_c', 'indoor_humidity_pct'
             ];
             
@@ -478,7 +478,7 @@
                     <td>${row.wind_gust_kmh !== undefined ? row.wind_gust_kmh : '—'}</td>
                     <td>${row.pressure_inhg !== undefined ? inHgToHpa(parseFloat(row.pressure_inhg)).toFixed(1) : '—'}</td>
                     <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
-                    <td>${row.rain_hourly_mm !== undefined ? row.rain_hourly_mm : '—'}</td>
+                    <td>${row.hourly_rain_mm !== undefined && row.hourly_rain_mm !== '' ? row.hourly_rain_mm : '—'}</td>                    <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
                     <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
                     <td>${row.uvi !== undefined ? row.uvi : '—'}</td>
                `;

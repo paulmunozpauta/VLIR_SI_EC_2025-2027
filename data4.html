@@ -315,7 +315,7 @@
                 const pressInHg = pressure.relative?.value;
                 const pressHpa = pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—';
                 const rainMm = rainfall.rain_rate?.value;
-                const hourlyRainMm = rainfall.hourly?.value;
+                const hourlyRainMm = rainfall['1_hour']?.value;
                 const solar = solar_uvi.solar?.value;
                 const uv = solar_uvi.uvi?.value;
 
@@ -329,7 +329,7 @@
                     row('gust', `${gustKmh ?? '—'} km/h (${gustKmh ? kmhToMph(parseFloat(gustKmh)).toFixed(1) : '—'} mph)`),
                     row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
                     row('rain rate', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
-                    row('hourly rain', `${hourlyRainMm ?? '—'} mm`),
+                    row('hourly rain', `${hourlyRainMm ?? '—'} mm (${hourlyRainMm ? mmToIn(parseFloat(hourlyRainMm)).toFixed(2) : '—'} in)`),
 
                     row('solar', `${solar ?? '—'} W/m²`),
                     row('uv index', uv ?? '—'),
@@ -478,7 +478,7 @@
                     <td>${row.wind_gust_kmh !== undefined ? row.wind_gust_kmh : '—'}</td>
                     <td>${row.pressure_inhg !== undefined ? inHgToHpa(parseFloat(row.pressure_inhg)).toFixed(1) : '—'}</td>
                     <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
-                    <td>${row.rain_daily_mm !== undefined ? row.rain_daily_mm : '—'}</td>
+                    <td>${row.rain_hourly_mm !== undefined ? row.rain_hourly_mm : '—'}</td>
                     <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
                     <td>${row.uvi !== undefined ? row.uvi : '—'}</td>
                `;

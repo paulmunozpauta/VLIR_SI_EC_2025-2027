@@ -327,13 +327,8 @@
                     row('temperature', `${tempC ?? '—'} °C (${tempC ? cToF(parseFloat(tempC)).toFixed(1) : '—'} °F)`),
                     row('feels like', `${outdoor.feels_like?.value ?? '—'} °C (${outdoor.feels_like?.value ? cToF(parseFloat(outdoor.feels_like.value)).toFixed(1) : '—'} °F)`),
                     row('humidity', `${humid ?? '—'} %`),
-                    row('dew point', `${dewC ?? '—'} °C (${dewC ? cToF(parseFloat(dewC)).toFixed(1) : '—'} °F)`),
                     row('wind', `${windKmh ?? '—'} km/h (${windKmh ? kmhToMph(parseFloat(windKmh)).toFixed(1) : '—'} mph) dir ${wdir ?? '—'}°`),
-                    row('gust', `${gustKmh ?? '—'} km/h (${gustKmh ? kmhToMph(parseFloat(gustKmh)).toFixed(1) : '—'} mph)`),
-                    row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
-                    row('rainfall', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
                     row('hourly rain', `${hourlyRainMm ?? '—'} mm (${hourlyRainMm ? mmToIn(parseFloat(hourlyRainMm)).toFixed(2) : '—'} in)`),
-                    row('solar', `${solar ?? '—'} W/m²`),
                     row('uv index', uv ?? '—'),
                     /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
                 */

@@ -209,7 +209,7 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
     const windGustMs = wind.wind_gust?.value || '';
     const pressureHpa = pressure.relative?.value || '';
     const rainRateMm = rainfall.rain_rate?.value || '';
-    const hourlyRainMm = rainfall.hourly?.value || '';
+    const hourlyRainMm = rainfall['1_hour']?.value || '';
 
     
 

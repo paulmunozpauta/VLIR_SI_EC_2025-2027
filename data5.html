@@ -333,8 +333,7 @@
                     row('gust', `${gustKmh ?? '—'} km/h (${gustKmh ? kmhToMph(parseFloat(gustKmh)).toFixed(1) : '—'} mph)`),
                     row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
                     row('rainfall', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
-                    /* row('rain today', `${dayRainMm ?? '—'} mm (${dayRainMm ? mmToIn(parseFloat(dayRainMm)).toFixed(1) : '—'} in)`),
-                    */
+                    row('hourly rain', `${hourlyRainMm ?? '—'} mm`),
                     row('solar', `${solar ?? '—'} W/m²`),
                     row('uv index', uv ?? '—'),
                     /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),

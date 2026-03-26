@@ -241,7 +241,7 @@
                             <th>Wind Gust (km/h)</th>
                             <th>Pressure (hPa)</th>
                             <th>Rain Rate (mm/hr)</th>
-                            <th>Rain Today (mm)</th>
+                            <th>Hourly rainfall (mm)</th>
                             <th>Solar (W/m²)</th>
                             <th>UV Index</th>
                            <!-- <th>Indoor Temp (°C)</th>-->
@@ -315,7 +315,7 @@
                 const pressInHg = pressure.relative?.value;
                 const pressHpa = pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—';
                 const rainMm = rainfall.rain_rate?.value;
-                const dayRainMm = rainfall.daily?.value;
+                const hourlyRainMm = rainfall.hourly?.value;
                 const solar = solar_uvi.solar?.value;
                 const uv = solar_uvi.uvi?.value;
 
@@ -329,12 +329,11 @@
                     row('gust', `${gustKmh ?? '—'} km/h (${gustKmh ? kmhToMph(parseFloat(gustKmh)).toFixed(1) : '—'} mph)`),
                     row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
                     row('rain rate', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
-                    /* row('rain today', `${dayRainMm ?? '—'} mm (${dayRainMm ? mmToIn(parseFloat(dayRainMm)).toFixed(1) : '—'} in)`),
-                    */
+                    row('hourly rain', `${hourlyRainMm ?? '—'} mm`),
                     row('solar', `${solar ?? '—'} W/m²`),
                     row('uv index', uv ?? '—'),
-                    /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
-                */
+                    row('hourly rain', `${hourlyRainMm ?? '—'} mm`),
+
                 ];
 
                 // Add indoor data if available
@@ -389,7 +388,7 @@
             const headers = [
                 'timestamp', 'temperature_c', 'humidity_pct', 'dew_point_c', 'feels_like_c',
                 'wind_speed_kmh', 'wind_gust_kmh', 'wind_direction_deg', 'pressure_inhg',
-                'rain_rate_mmhr', 'rain_daily_mm', 'solar_wm2', 'uvi'
+                'rain_rate_mmhr', 'rain_hourly_mm', 'solar_wm2', 'uvi'
                 //'indoor_temp_c', 'indoor_humidity_pct'
             ];
             
@@ -593,7 +592,7 @@ function buildSeries(data) {
         x.push(d.getTime());
         temp.push(toNumberOrNull(r.temperature_c));
         hum.push(toNumberOrNull(r.humidity_pct));
-        rain.push(toNumberOrNull(r.rain_rate_mmhr));
+        rain.push(toNumberOrNull(r.hourly_rain_mm));
     }
 
     return { x, temp, hum, rain };
@@ -628,7 +627,7 @@ function renderHistoricalCharts(data) {
 
     if (!tempChart) tempChart = makeLineChart("temp-chart", "°C", "Temperature (°C)");
     if (!humChart) humChart = makeLineChart("hum-chart", "%", "Humidity (%)");
-    if (!rainChart) rainChart = makeLineChart("rain-chart", "mm/hr", "Precipitation (mm/hr)");
+    if (!rainChart) rainChart = makeLineChart("rain-chart", "mm/hr", "Hourly rainfall (mm)");
 
     updateChart(tempChart, x, temp);
     updateChart(humChart, x, hum);

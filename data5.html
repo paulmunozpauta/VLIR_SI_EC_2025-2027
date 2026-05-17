@@ -241,8 +241,8 @@
                             <th>Humidity (%)</th>
                             <th>Dew Point (°C)</th>
                             <th>Feels Like (°C)</th>
-                            <th>Wind Speed (km/h)</th>
-                            <th>Wind Gust (km/h)</th>
+                            <th>Wind Speed (m/s)</th>
+                            <th>Wind Gust (m/s)</th>
                             <th>Absolute Atmospheric Pressure (hPa)</th>
                             <th>Rain Rate (mm/hr)</th>
                             <th>Cumulative Rainfall (mm)</th>
@@ -315,10 +315,9 @@
                 const windKmh = wind.wind_speed?.value;
                 const gustKmh = wind.wind_gust?.value;
                 const wdir = wind.wind_direction?.value;
-                const pressInHg = pressure.relative?.value;
-                const pressHpa = pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—';
+                const pressHpa = pressure.absolute?.value ?? '—';
+                const yearlyRainMm = rainfall.yearly?.value ?? '—';
                 const rainMm = rainfall.rain_rate?.value;
-                const hourlyRainMm = rainfall['1_hour']?.value;
                 const solar = solar_uvi.solar?.value;
                 const uv = solar_uvi.uvi?.value;
 
@@ -328,8 +327,8 @@
                     row('feels like', `${outdoor.feels_like?.value ?? '—'} °C (${outdoor.feels_like?.value ? cToF(parseFloat(outdoor.feels_like.value)).toFixed(1) : '—'} °F)`),
                     row('humidity', `${humid ?? '—'} %`),
                     row('wind', `${windKmh ?? '—'} km/h (${windKmh ? kmhToMph(parseFloat(windKmh)).toFixed(1) : '—'} mph) dir ${wdir ?? '—'}°`),
-                    row('hourly rain', `${hourlyRainMm ?? '—'} mm (${hourlyRainMm ? mmToIn(parseFloat(hourlyRainMm)).toFixed(2) : '—'} in)`),
-                    row('uv index', uv ?? '—'),
+                    row('yearly cumulative rain', `${yearlyRainMm} mm (${yearlyRainMm !== '—' ? mmToIn(parseFloat(yearlyRainMm)).toFixed(2) : '—'} in)`),                    row('uv index', uv ?? '—'),
+                    row('absolute pressure', `${pressHpa} hPa`),
                     /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
                 */
                 ];
@@ -383,13 +382,24 @@
             const lines = csvText.split('\n').filter(line => line.trim());
             
             // Define headers based on your CSV structure
+
             const headers = [
-                'timestamp', 'temperature_c', 'humidity_pct', 'dew_point_c', 'feels_like_c',
-                'wind_speed_kmh', 'wind_gust_kmh', 'wind_direction_deg', 'pressure_inhg',
-                'rain_rate_mmhr', 'hourly_rain_mm', 'solar_wm2', 'uvi'
-                //'indoor_temp_c', 'indoor_humidity_pct'
-            ];
-            
+    'timestamp',
+    'temperature_c',
+    'humidity_pct',
+    'dew_point_c',
+    'feels_like_c',
+    'wind_speed_ms',
+    'wind_gust_ms',
+    'wind_direction_deg',
+    'absolute_pressure_hpa',
+    'rain_rate_mmhr',
+    'yearly_rain_mm',
+    'solar_wm2',
+    'uv_index',
+    'indoor_temp_c',
+    'indoor_humidity_pct'
+];
             const data = [];
             
             // Check if first line contains headers or data
@@ -470,13 +480,13 @@
                     <td>${row.humidity_pct !== undefined ? row.humidity_pct : '—'}</td>
                     <td>${row.dew_point_c !== undefined ? row.dew_point_c : '—'}</td>
                     <td>${row.feels_like_c !== undefined ? row.feels_like_c : '—'}</td>
-                    <td>${row.wind_speed_kmh !== undefined ? row.wind_speed_kmh : '—'}</td>
-                    <td>${row.wind_gust_kmh !== undefined ? row.wind_gust_kmh : '—'}</td>
-                    <td>${row.pressure_inhg !== undefined ? inHgToHpa(parseFloat(row.pressure_inhg)).toFixed(1) : '—'}</td>
+                    <td>${row.wind_speed_ms !== undefined ? row.wind_speed_ms : '—'}</td>
+                    <td>${row.wind_gust_ms !== undefined ? row.wind_gust_ms : '—'}</td>
+                    <td>${row.absolute_pressure_hpa !== undefined ? row.absolute_pressure_hpa : '—'}</td>
                     <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
-                    <td>${row.hourly_rain_mm !== undefined && row.hourly_rain_mm !== '' ? row.hourly_rain_mm : '—'}</td>                    
+                    <td>${row.yearly_rain_mm !== undefined && row.yearly_rain_mm !== '' ? row.yearly_rain_mm : '—'}</td>
+                    <td>${row.uv_index !== undefined ? row.uv_index : '—'}</td>
                     <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
-                    <td>${row.uvi !== undefined ? row.uvi : '—'}</td>
                 `;
                 
                 tableBody.appendChild(tr);
@@ -590,11 +600,34 @@ function buildSeries(data) {
         x.push(d.getTime());
         temp.push(toNumberOrNull(r.temperature_c));
         hum.push(toNumberOrNull(r.humidity_pct));
-        rain.push(toNumberOrNull(r.hourly_rain_mm));
+
+        // yearly cumulative rain from GitHub CSV
+        rain.push(toNumberOrNull(r.yearly_rain_mm));
     }
 
-    return { x, temp, hum, rain };
+    // Convert yearly cumulative rainfall to interval rainfall
+    const rainInterval = [];
+
+    for (let i = 0; i < rain.length; i++) {
+
+        if (i === 0 || rain[i] === null || rain[i - 1] === null) {
+            rainInterval.push(0);
+            continue;
+        }
+
+        const diff = rain[i] - rain[i - 1];
+
+        if (diff >= 0) {
+            rainInterval.push(diff);
+        } else {
+            // yearly counter reset: current value is rainfall since reset
+            rainInterval.push(rain[i]);
+        }
+    }
+
+    return { x, temp, hum, rain: rainInterval };
 }
+
 
 function filterSeriesLastHours(x, y, hours) {
     const now = Date.now();

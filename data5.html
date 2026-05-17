@@ -245,7 +245,7 @@
                             <th>Wind Gust (m/s)</th>
                             <th>Absolute Atmospheric Pressure (hPa)</th>
                             <th>Rain Rate (mm/hr)</th>
-                            <th>Cumulative Rainfall (mm)</th>
+                            <th>Interval precipitation (mm)</th>
                             <th>Solar (W/m²)</th>
                             <th>UV Index</th>
                            <!-- <th>Indoor Temp (°C)</th>-->
@@ -457,6 +457,41 @@
         }
 
         // FIXED TABLE POPULATION - Use the correct column names
+        
+        function addIntervalRain(data) {
+        const sorted = [...(data || [])].sort((a, b) =>
+            new Date(a.timestamp) - new Date(b.timestamp)
+        );
+
+        let previous = null;
+
+        for (const row of sorted) {
+            const current = toNumberOrNull(row.yearly_rain_mm);
+
+            if (current === null || previous === null) {
+                row.interval_rain_mm = 0;
+                previous = current;
+                continue;
+            }
+
+            const diff = current - previous;
+
+            if (diff >= 0) {
+                row.interval_rain_mm = diff;
+            } else {
+                // yearly counter reset:
+                // current cumulative value is rainfall since reset
+                row.interval_rain_mm = current;
+            }
+
+            previous = current;
+        }
+
+        return sorted;
+    }   
+            
+        
+        
         function populateTable(data) {
             const tableBody = document.getElementById('table-body');
             const tableInfo = document.getElementById('table-info');
@@ -484,10 +519,9 @@
                     <td>${row.wind_gust_ms !== undefined ? row.wind_gust_ms : '—'}</td>
                     <td>${row.absolute_pressure_hpa !== undefined ? row.absolute_pressure_hpa : '—'}</td>
                     <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
-                    <td>${row.yearly_rain_mm !== undefined && row.yearly_rain_mm !== '' ? row.yearly_rain_mm : '—'}</td>
-                    <td>${row.uv_index !== undefined ? row.uv_index : '—'}</td>
+                    <td>${row.interval_rain_mm !== undefined ? row.interval_rain_mm.toFixed(1) : '—'}</td>
                     <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
-                `;
+                    <td>${row.uv_index !== undefined ? row.uv_index : '—'}</td>                `;
                 
                 tableBody.appendChild(tr);
             });
@@ -699,9 +733,10 @@ function renderHistoricalCharts(data) {
                 
                 
                 
-                const csvData = parseCSV(csvText);
-                console.log('Parsed CSV data:', csvData); // Debug log
-
+                let csvData = parseCSV(csvText);
+                csvData = addIntervalRain(csvData);
+                console.log('Parsed CSV data:', csvData);
+                
                 // keep only last 100 hours for charts
                 renderHistoricalCharts(csvData);
 

@@ -207,9 +207,9 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
     const indoorTempC = indoor.temperature?.value || '';
     const windSpeedMs = wind.wind_speed?.value || '';
     const windGustMs = wind.wind_gust?.value || '';
-    const pressureHpa = pressure.relative?.value || '';
+    const pressureHpa = pressure.absolute?.value || '';
     const rainRateMm = rainfall.rain_rate?.value || '';
-    const hourlyRainMm = rainfall['1_hour']?.value || '';
+    const yearlyRainMm = rainfall.yearly?.value || '';
 
     
 
@@ -225,7 +225,7 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
       wind.wind_direction?.value || '', // Wind Direction (°)
       pressureHpa,                    // Pressure (hPa)
       rainRateMm,                     // Rain Rate (mm/hr)
-      hourlyRainMm,                    // Hourly Rain (mm)
+      yearlyRainMm,                    // Hourly Rain (mm)
       solar_uvi.solar?.value || '',   // Solar Radiation (W/m²)
       solar_uvi.uvi?.value || '',     // UV Index
       indoorTempC,                    // Indoor Temperature (°C)
@@ -262,7 +262,7 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
     
     // Create CSV header if file doesn't exist
     if (!existingContent) {
-      existingContent = 'timestamp,temperature_c,humidity_pct,dew_point_c,feels_like_c,wind_speed_ms,wind_gust_ms,wind_direction_deg,pressure_hpa,rain_rate_mmhr,hourly_rain_mm,solar_wm2,uv_index,indoor_temp_c,indoor_humidity_pct\n';
+      existingContent = 'timestamp,temperature_c,humidity_pct,dew_point_c,feels_like_c,wind_speed_ms,wind_gust_ms,wind_direction_deg,absolute_pressure_hpa,rain_rate_mmhr,yearly_rain_mm,solar_wm2,uv_index,indoor_temp_c,indoor_humidity_pct\n';
     }
     
     // Append new row const newContent = existingContent + csvRow + '\n';

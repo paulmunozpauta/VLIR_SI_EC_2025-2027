@@ -40,18 +40,24 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log("Fetching data from Ecowitt API for all sensors (HOURLY interval)...");
-    
+    console.log("Fetching data from Ecowitt API for all sensors (30MIN interval)...");
     // Check if we should run this hour (reduce GitHub API calls)
+
+    
+    // Run only near minute 0 or 30
     const now = new Date();
     const currentMinute = now.getMinutes();
-    
-    // Only run at the top of the hour (minute 0-5) to reduce API calls
-    if (currentMinute > 5) {
-      console.log(`Skipping - not at top of hour (current minute: ${currentMinute})`);
+
+    const isThirtyMinuteWindow =
+      (currentMinute >= 0 && currentMinute <= 5) ||
+      (currentMinute >= 30 && currentMinute <= 35);
+
+    if (!isThirtyMinuteWindow) {
+      console.log(`Skipping - not in 30-minute window (current minute: ${currentMinute})`);
       return;
     }
-    
+
+
     // ⚠️ IMPORTANT: REPLACE THESE MAC ADDRESSES WITH YOUR ACTUAL SENSOR MACs ⚠️
     const sensors = [
       { 
@@ -108,7 +114,7 @@ export default {
           
           const apiUrl = `https://api.ecowitt.net/api/v3/device/real_time?application_key=31B06CAD6518B81F808312D91B55973A&api_key=be6a3fde-4a04-40e0-8452-49ef32af65a0&mac=${sensor.mac}&call_back=all&temp_unitid=1&pressure_unitid=4&wind_speed_unitid=7&rainfall_unitid=12`;
           
-          console.log(`Fetching HOURLY data for sensor ${sensor.id}...`);
+          console.log(`Fetching 30-min data for sensor ${sensor.id}...`);
           const response = await fetch(apiUrl);
           
           if (!response.ok) {
@@ -130,20 +136,16 @@ export default {
               ecowitt_api: data.data,
               received_at: timestamp,
               api_timestamp: data.time,
-              collection_type: "HOURLY" // Mark as hourly collection
+              collection_type: "30MIN" // Mark as hourly collection
             }, null, 2);
             
             // Store individual sensor data
             await env.WEATHER_KV.put(`sensor_${sensor.id}.json`, payload);
             
             // Only append to GitHub CSV once per hour to reduce API calls
-            if (currentMinute <= 2) { // Only in first 2 minutes of the hour
-              await appendToGitHubCSV(data.data, timestamp, env, sensor.csvFile, sensor.id);
-            } else {
-              console.log(`Skipping GitHub update for ${sensor.id} - not in CSV window`);
-            }
-            
-            console.log(`Sensor ${sensor.id} HOURLY data stored successfully`);
+
+            await appendToGitHubCSV(data.data, timestamp, env, sensor.csvFile, sensor.id);
+            console.log(`Sensor ${sensor.id} 30MIN data stored successfully`);
             results.push({ sensorId: sensor.id, success: true, data: JSON.parse(payload) });
           } else {
             console.log(`Sensor ${sensor.id} API error:`, data.msg);
@@ -158,7 +160,7 @@ export default {
       // Create combined latest data
       const combinedData = {
         timestamp: new Date().toISOString(),
-        collection_type: "HOURLY",
+        collection_type: "30MIN",
         units: "SI",
         sensors: results.filter(r => r.success).map(r => ({
           sensor_id: r.sensorId,
@@ -173,10 +175,10 @@ export default {
       await env.WEATHER_KV.put("latest.json", JSON.stringify(combinedData, null, 2));
       
       const successful = results.filter(r => r.success).length;
-      console.log(`HOURLY job completed: ${successful}/5 sensors successful`);
+      console.log(`30MIN job completed: ${successful}/5 sensors successful`);
       
     } catch (error) {
-      console.log("HOURLY job failed:", error.message);
+      console.log("30MIN job failed:", error.message);
     }
   }
 };
@@ -184,7 +186,7 @@ export default {
 // Function to append data to CSV in GitHub
 async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, sensorId) {
   try {
-    console.log(`=== GITHUB CSV HOURLY UPDATE for ${sensorId} ===`);
+    console.log(`=== GITHUB CSV 30MIN UPDATE for ${sensorId} ===`);
     
     // Extract main weather parameters
     const outdoor = weatherData.outdoor || {};
@@ -225,7 +227,7 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
       wind.wind_direction?.value || '', // Wind Direction (°)
       pressureHpa,                    // Pressure (hPa)
       rainRateMm,                     // Rain Rate (mm/hr)
-      yearlyRainMm,                    // Hourly Rain (mm)
+      yearlyRainMm,                    // Cumulative yearly Rain (mm)
       solar_uvi.solar?.value || '',   // Solar Radiation (W/m²)
       solar_uvi.uvi?.value || '',     // UV Index
       indoorTempC,                    // Indoor Temperature (°C)
@@ -277,14 +279,14 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
       method: 'PUT',
       headers,
       body: JSON.stringify({
-        message: `Add HOURLY weather data for ${sensorId}: ${timestamp}`,
+        message: `Add 30MIN weather data for ${sensorId}: ${timestamp}`,
         content: btoa(newContent),
         sha: sha
       })
     });
     
     if (updateResponse.ok) {
-      console.log(`✅ HOURLY SI CSV data for ${sensorId} appended to GitHub`);
+      console.log(`✅ 30MIN SI CSV data for ${sensorId} appended to GitHub`);
     } else {
       console.log(`❌ Failed to update GitHub CSV for ${sensorId}:`, updateResponse.status);
     }

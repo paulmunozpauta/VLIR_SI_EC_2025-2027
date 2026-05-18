@@ -322,14 +322,14 @@
 
                 // FIXED DISPLAY LOGIC - Show Celsius first, then Fahrenheit conversion
                 const rows = [
-                    row('temperature', `${tempC ?? '—'} °C (${tempC ? cToF(parseFloat(tempC)).toFixed(1) : '—'} °F)`),
-                    row('feels like', `${outdoor.feels_like?.value ?? '—'} °C (${outdoor.feels_like?.value ? cToF(parseFloat(outdoor.feels_like.value)).toFixed(1) : '—'} °F)`),
+                    row('temperature', `${tempC ?? '—'} °C`),
+                    row('feels like', `${outdoor.feels_like?.value ?? '—'} °C`),
                     row('humidity', `${humid ?? '—'} %`),
-                    row('wind', `${windMs ?? '—'} m/s dir ${wdir ?? '—'}°`),                    row('yearly cumulative rain', `${yearlyRainMm} mm (${yearlyRainMm !== '—' ? mmToIn(parseFloat(yearlyRainMm)).toFixed(2) : '—'} in)`),                    row('uv index', uv ?? '—'),
+                    row('wind', `${windMs ?? '—'} m/s dir ${wdir ?? '—'}°`),
                     row('gust', `${gustMs ?? '—'} m/s`),
-                    row('absolute pressure', `${pressHpa} hPa`),
-                    row('rain rate', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),                    
-                    row('yearly cumulative rain', `${yearlyRainMm} mm (${yearlyRainMm !== '—' ? mmToIn(parseFloat(yearlyRainMm)).toFixed(2) : '—'} in)`),
+                    row('rain rate', `${rainMm ?? '—'} mm/hr`),
+                    row('uv index', uv ?? '—'),
+                    row('absolute pressure', `${pressHpa} hPa`)
                     /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
                 */
                 ];

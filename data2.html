@@ -634,11 +634,34 @@ function buildSeries(data) {
         x.push(d.getTime());
         temp.push(toNumberOrNull(r.temperature_c));
         hum.push(toNumberOrNull(r.humidity_pct));
-        rain.push(toNumberOrNull(r.hourly_rain_mm));
+
+        // yearly cumulative rain from GitHub CSV
+        rain.push(toNumberOrNull(r.yearly_rain_mm));
     }
 
-    return { x, temp, hum, rain };
+    // Convert yearly cumulative rainfall to interval rainfall
+    const rainInterval = [];
+
+    for (let i = 0; i < rain.length; i++) {
+
+        if (i === 0 || rain[i] === null || rain[i - 1] === null) {
+            rainInterval.push(0);
+            continue;
+        }
+
+        const diff = rain[i] - rain[i - 1];
+
+        if (diff >= 0) {
+            rainInterval.push(diff);
+        } else {
+            // yearly counter reset: current value is rainfall since reset
+            rainInterval.push(rain[i]);
+        }
+    }
+
+    return { x, temp, hum, rain: rainInterval };
 }
+
 
 function filterSeriesLastHours(x, y, hours) {
     const now = Date.now();

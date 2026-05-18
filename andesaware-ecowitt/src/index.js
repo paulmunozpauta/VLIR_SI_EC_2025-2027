@@ -128,7 +128,7 @@ export default {
           const data = await response.json();
           
           if (data.code === 0) {
-            const timestamp = data.time || new Date().toISOString();
+            const timestamp = getRoundedTimestamp();
             const payload = JSON.stringify({
               sensor_id: sensor.id,
               sensor_name: sensor.name,
@@ -295,6 +295,20 @@ async function appendToGitHubCSV(weatherData, timestamp, env, csvFileName, senso
   } catch (error) {
     console.log(`💥 Error in appendToGitHubCSV for ${sensorId}:`, error.message);
   }
+}
+
+function getRoundedTimestamp() {
+  const now = new Date();
+
+  // Round to nearest 15-minute block
+  const minutes = now.getUTCMinutes();
+  const roundedMinutes = Math.floor(minutes / 15) * 15;
+
+  now.setUTCMinutes(roundedMinutes);
+  now.setUTCSeconds(0);
+  now.setUTCMilliseconds(0);
+
+  return now.toISOString();
 }
 
 function corsHeaders(req) {

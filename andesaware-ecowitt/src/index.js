@@ -126,8 +126,7 @@ export default {
           const data = await response.json();
           
           if (data.code === 0) {
-            const timestamp = new Date().toISOString();
-            
+            const timestamp = data.time || new Date().toISOString();
             const payload = JSON.stringify({
               sensor_id: sensor.id,
               sensor_name: sensor.name,

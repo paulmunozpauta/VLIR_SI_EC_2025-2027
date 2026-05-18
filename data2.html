@@ -237,11 +237,12 @@
                             <th>Humidity (%)</th>
                             <th>Dew Point (°C)</th>
                             <th>Feels Like (°C)</th>
-                            <th>Wind Speed (km/h)</th>
-                            <th>Wind Gust (km/h)</th>
-                            <th>Pressure (hPa)</th>
+                            <th>Wind Speed (m/s)</th>
+                            <th>Wind Direction (°)</th>
+                            <th>Wind Gust (m/s)</th>
+                            <th>Absolute Atmospheric Pressure (hPa)</th>
                             <th>Rain Rate (mm/hr)</th>
-                            <th>Hourly rainfall (mm)</th>
+                            <th>Interval precipitation (mm)</th>                            
                             <th>Solar (W/m²)</th>
                             <th>UV Index</th>
                            <!-- <th>Indoor Temp (°C)</th>-->
@@ -309,13 +310,12 @@
                 const tempC = outdoor.temperature?.value;
                 const humid = outdoor.humidity?.value;
                 const dewC = outdoor.dew_point?.value;
-                const windKmh = wind.wind_speed?.value;
-                const gustKmh = wind.wind_gust?.value;
+                const windMs = wind.wind_speed?.value;
+                const gustMs = wind.wind_gust?.value;
                 const wdir = wind.wind_direction?.value;
-                const pressInHg = pressure.relative?.value;
-                const pressHpa = pressInHg ? inHgToHpa(parseFloat(pressInHg)).toFixed(1) : '—';
+                const pressHpa = pressure.absolute?.value ?? '—';
+                const yearlyRainMm = rainfall.yearly?.value ?? '—';
                 const rainMm = rainfall.rain_rate?.value;
-                const hourlyRainMm = rainfall['1_hour']?.value;
                 const solar = solar_uvi.solar?.value;
                 const uv = solar_uvi.uvi?.value;
 
@@ -324,15 +324,11 @@
                     row('temperature', `${tempC ?? '—'} °C (${tempC ? cToF(parseFloat(tempC)).toFixed(1) : '—'} °F)`),
                     row('feels like', `${outdoor.feels_like?.value ?? '—'} °C (${outdoor.feels_like?.value ? cToF(parseFloat(outdoor.feels_like.value)).toFixed(1) : '—'} °F)`),
                     row('humidity', `${humid ?? '—'} %`),
-                    row('dew point', `${dewC ?? '—'} °C (${dewC ? cToF(parseFloat(dewC)).toFixed(1) : '—'} °F)`),
-                    row('wind', `${windKmh ?? '—'} km/h (${windKmh ? kmhToMph(parseFloat(windKmh)).toFixed(1) : '—'} mph) dir ${wdir ?? '—'}°`),
-                    row('gust', `${gustKmh ?? '—'} km/h (${gustKmh ? kmhToMph(parseFloat(gustKmh)).toFixed(1) : '—'} mph)`),
-                    row('pressure', `${pressHpa} hPa (${pressInHg ?? '—'} inHg)`),
-                    row('rain rate', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),
-                    row('hourly rain', `${hourlyRainMm ?? '—'} mm (${hourlyRainMm ? mmToIn(parseFloat(hourlyRainMm)).toFixed(2) : '—'} in)`),
-
-                    row('solar', `${solar ?? '—'} W/m²`),
-                    row('uv index', uv ?? '—'),
+                    row('wind', `${windMs ?? '—'} m/s dir ${wdir ?? '—'}°`),                    row('yearly cumulative rain', `${yearlyRainMm} mm (${yearlyRainMm !== '—' ? mmToIn(parseFloat(yearlyRainMm)).toFixed(2) : '—'} in)`),                    row('uv index', uv ?? '—'),
+                    row('gust', `${gustMs ?? '—'} m/s`),
+                    row('absolute pressure', `${pressHpa} hPa`),
+                    row('rain rate', `${rainMm ?? '—'} mm/hr (${rainMm ? mmToIn(parseFloat(rainMm)).toFixed(2) : '—'} in/hr)`),                    
+                    row('yearly cumulative rain', `${yearlyRainMm} mm (${yearlyRainMm !== '—' ? mmToIn(parseFloat(yearlyRainMm)).toFixed(2) : '—'} in)`),
                     /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
                 */
                 ];
@@ -387,11 +383,22 @@
             
             // Define headers based on your CSV structure
             const headers = [
-                'timestamp', 'temperature_c', 'humidity_pct', 'dew_point_c', 'feels_like_c',
-                'wind_speed_kmh', 'wind_gust_kmh', 'wind_direction_deg', 'pressure_inhg',
-                'rain_rate_mmhr', 'hourly_rain_mm', 'solar_wm2', 'uvi'
-                //'indoor_temp_c', 'indoor_humidity_pct'
-            ];
+    'timestamp',
+    'temperature_c',
+    'humidity_pct',
+    'dew_point_c',
+    'feels_like_c',
+    'wind_speed_ms',
+    'wind_gust_ms',
+    'wind_direction_deg',
+    'absolute_pressure_hpa',
+    'rain_rate_mmhr',
+    'yearly_rain_mm',
+    'solar_wm2',
+    'uv_index',
+    'indoor_temp_c',
+    'indoor_humidity_pct'
+];
             
             const data = [];
             
@@ -449,6 +456,40 @@
             }
         }
 
+
+        // FIXED TABLE POPULATION - Use the correct column names
+        
+        function addIntervalRain(data) {
+        const sorted = [...(data || [])].sort((a, b) =>
+            new Date(a.timestamp) - new Date(b.timestamp)
+        );
+
+        let previous = null;
+
+        for (const row of sorted) {
+            const current = toNumberOrNull(row.yearly_rain_mm);
+
+            if (current === null || previous === null) {
+                row.interval_rain_mm = 0;
+                previous = current;
+                continue;
+            }
+
+            const diff = current - previous;
+
+            if (diff >= 0) {
+                row.interval_rain_mm = diff;
+            } else {
+                // yearly counter reset:
+                // current cumulative value is rainfall since reset
+                row.interval_rain_mm = current;
+            }
+
+            previous = current;
+        }
+
+        return sorted;
+    }           
         // FIXED TABLE POPULATION - Use the correct column names
         function populateTable(data) {
             const tableBody = document.getElementById('table-body');
@@ -474,14 +515,14 @@
                     <td>${row.humidity_pct !== undefined ? row.humidity_pct : '—'}</td>
                     <td>${row.dew_point_c !== undefined ? row.dew_point_c : '—'}</td>
                     <td>${row.feels_like_c !== undefined ? row.feels_like_c : '—'}</td>
-                    <td>${row.wind_speed_kmh !== undefined ? row.wind_speed_kmh : '—'}</td>
-                    <td>${row.wind_gust_kmh !== undefined ? row.wind_gust_kmh : '—'}</td>
-                    <td>${row.pressure_inhg !== undefined ? inHgToHpa(parseFloat(row.pressure_inhg)).toFixed(1) : '—'}</td>
+                    <td>${row.wind_speed_ms !== undefined ? row.wind_speed_ms : '—'}</td>
+                    <td>${row.wind_gust_ms !== undefined ? row.wind_gust_ms : '—'}</td>
+                    <td>${row.wind_direction_deg !== undefined ? row.wind_direction_deg : '—'}</td>  
+                    <td>${row.absolute_pressure_hpa !== undefined ? row.absolute_pressure_hpa : '—'}</td>
                     <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
-                    <td>${row.hourly_rain_mm !== undefined && row.hourly_rain_mm !== '' ? row.hourly_rain_mm : '—'}</td>
+                    <td>${row.interval_rain_mm !== undefined ? row.interval_rain_mm.toFixed(1) : '—'}</td>
                     <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
-                    <td>${row.uvi !== undefined ? row.uvi : '—'}</td>
-               `;
+                    <td>${row.uv_index !== undefined ? row.uv_index : '—'}</td>                `;
                 
                 tableBody.appendChild(tr);
             });
@@ -628,7 +669,7 @@ function renderHistoricalCharts(data) {
 
     if (!tempChart) tempChart = makeLineChart("temp-chart", "°C", "Temperature (°C)");
     if (!humChart) humChart = makeLineChart("hum-chart", "%", "Humidity (%)");
-    if (!rainChart) rainChart = makeLineChart("rain-chart", "mm/hr", "Hourly rainfall (mm)");
+    if (!rainChart) rainChart = makeLineChart("rain-chart", "mm", "Interval rainfall (mm)");
 
     updateChart(tempChart, x, temp);
     updateChart(humChart, x, hum);
@@ -669,9 +710,10 @@ function renderHistoricalCharts(data) {
                 
                 
                 
-                const csvData = parseCSV(csvText);
-                console.log('Parsed CSV data:', csvData); // Debug log
-
+                let csvData = parseCSV(csvText);
+                csvData = addIntervalRain(csvData);
+                console.log('Parsed CSV data:', csvData);
+                
                 // keep only last 100 hours for charts
                 renderHistoricalCharts(csvData);
 

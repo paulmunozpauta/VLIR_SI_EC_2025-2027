@@ -40,23 +40,25 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log("Fetching data from Ecowitt API for all sensors (30MIN interval)...");
+    console.log("Fetching data from Ecowitt API for all sensors (15MIN interval)...");
     // Check if we should run this hour (reduce GitHub API calls)
 
-    
-    // Run only near minute 0 or 30
+  
+
+    // Run only near minute 0, 15, 30, or 45
     const now = new Date();
     const currentMinute = now.getMinutes();
 
-    const isThirtyMinuteWindow =
+    const isFifteenMinuteWindow =
       (currentMinute >= 0 && currentMinute <= 5) ||
-      (currentMinute >= 30 && currentMinute <= 35);
+      (currentMinute >= 15 && currentMinute <= 20) ||
+      (currentMinute >= 30 && currentMinute <= 35) ||
+      (currentMinute >= 45 && currentMinute <= 50);
 
-    if (!isThirtyMinuteWindow) {
-      console.log(`Skipping - not in 30-minute window (current minute: ${currentMinute})`);
+    if (!isFifteenMinuteWindow) {
+      console.log(`Skipping - not in 15-minute window (current minute: ${currentMinute})`);
       return;
     }
-
 
     // ⚠️ IMPORTANT: REPLACE THESE MAC ADDRESSES WITH YOUR ACTUAL SENSOR MACs ⚠️
     const sensors = [
@@ -135,7 +137,7 @@ export default {
               ecowitt_api: data.data,
               received_at: timestamp,
               api_timestamp: data.time,
-              collection_type: "30MIN" // Mark as hourly collection
+              collection_type: "15MIN" // Mark as 15min collection
             }, null, 2);
             
             // Store individual sensor data
@@ -144,7 +146,7 @@ export default {
             // Only append to GitHub CSV once per hour to reduce API calls
 
             await appendToGitHubCSV(data.data, timestamp, env, sensor.csvFile, sensor.id);
-            console.log(`Sensor ${sensor.id} 30MIN data stored successfully`);
+            console.log(`Sensor ${sensor.id} 15MIN data stored successfully`);
             results.push({ sensorId: sensor.id, success: true, data: JSON.parse(payload) });
           } else {
             console.log(`Sensor ${sensor.id} API error:`, data.msg);

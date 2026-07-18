@@ -1,31 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Station 005</title>
+
+    <title>AW001 · Campus Universidad de Cuenca (Balzay)</title>
+
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
     <style>
-        :root { 
-            font-family: system-ui, sans-serif; 
-            line-height: 1.35; 
+        :root {
+            font-family: system-ui, sans-serif;
+            line-height: 1.35;
         }
-        
-        body { 
+
+        body {
             margin: 0;
             padding: 0;
             color: #333;
         }
-        
-        /* Navigation placeholder */
+
         #nav-placeholder {
             background-color: #2c3e50;
             color: white;
             padding: 1rem;
         }
-        
-        /* Hero banner */
+
         .image-banner {
             position: relative;
             height: 200px;
@@ -35,47 +41,61 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .text-overlay {
             color: white;
             font-size: 2.5rem;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
-        
-        /* Main content */
+
         main {
             max-width: 1200px;
             margin: 0 auto;
             padding: 2rem;
         }
-        
-        /* Weather data styles */
-        .grid { 
-            display: grid; 
-            grid-template-columns: 14rem 1fr; 
-            gap: .35rem .75rem; 
+
+        .grid {
+            display: grid;
+            grid-template-columns: 14rem 1fr;
+            gap: 0.35rem 0.75rem;
             margin: 1.5rem 0;
         }
-        
-        .k { color: #444; }
-        .v { font-variant-numeric: tabular-nums; }
-        .muted { color:#666; font-size:.9rem; margin-top:.75rem }
-        .ok { color:#2c7; } 
-        .err{ color:#c33; }
-        
-        /* Map section styles */
+
+        .k {
+            color: #444;
+        }
+
+        .v {
+            font-variant-numeric: tabular-nums;
+        }
+
+        .muted {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.75rem;
+        }
+
+        .ok {
+            color: #2c7;
+        }
+
+        .err {
+            color: #c33;
+        }
+
         .map-section {
             margin-top: 2rem;
             border-top: 1px solid #e0e0e0;
             padding-top: 1.5rem;
         }
-        
+
         .map-section h2 {
             margin-bottom: 1rem;
             color: #333;
         }
-        
+
         #station-map {
             height: 300px;
             width: 100%;
@@ -83,60 +103,54 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             margin-bottom: 1rem;
         }
-        
+
         .coordinates {
             text-align: center;
             font-family: monospace;
             color: #666;
             font-size: 0.9rem;
         }
-        
-        /* Historical data table styles */
+
         .historical-section {
             margin-top: 2.5rem;
             border-top: 1px solid #e0e0e0;
             padding-top: 1.5rem;
         }
-        
-        .historical-section h2 {
-            margin-bottom: 1rem;
-            color: #333;
-        }
-        
+
         .table-container {
             overflow-x: auto;
             margin-bottom: 1rem;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             background-color: white;
         }
-        
+
         thead {
             background-color: #4b6cb7;
             color: white;
         }
-        
-        th, td {
+
+        th,
+        td {
             padding: 10px 12px;
             text-align: left;
             border-bottom: 1px solid #e1e1e1;
             white-space: nowrap;
         }
-        
+
         tbody tr:hover {
             background-color: #f1f5fd;
         }
-        
+
         .timestamp {
             min-width: 180px;
         }
-        
-        /* Footer placeholder */
+
         #footer-placeholder {
             background-color: #f5f5f5;
             padding: 2rem;
@@ -144,679 +158,2512 @@
             margin-top: 3rem;
             border-top: 1px solid #e0e0e0;
         }
-        
+
         @media (max-width: 768px) {
             main {
                 padding: 1rem;
             }
-            
+
             table {
                 font-size: 0.85rem;
             }
-            
-            th, td {
+
+            th,
+            td {
                 padding: 8px 10px;
             }
-            
+
             #station-map {
                 height: 250px;
             }
-            
+
             .grid {
                 grid-template-columns: 1fr;
                 gap: 0.5rem;
             }
+
+            .text-overlay {
+                font-size: 1.8rem;
+            }
         }
     </style>
 </head>
+
 <body>
-    <!-- Navigation will be inserted here -->
-    <div id="nav-placeholder"></div>
-    
-    <div class="image-banner hero-small" style="background-image: url('images/background.jpg');">
-        <div class="text-overlay">Weather data</div>
+
+<div id="nav-placeholder"></div>
+
+<div
+    class="image-banner hero-small"
+    style="background-image: url('images/background.jpg');"
+>
+    <div class="text-overlay">
+        AW001: Campus Universidad de Cuenca (Balzay)
+    </div>
+</div>
+
+<main>
+
+    <div id="status" class="muted">Cargando…</div>
+
+    <div class="current-card">
+        <div class="current-grid" id="out"></div>
     </div>
 
-    <!-- Content -->
-    <main>
-        <h1>AW001: Campus Universidad de Cuenca (Balzay)</h1>
-        <div id="status" class="muted">loading…</div>
-        <div class="current-card">
-        <div class="current-grid" id="out"></div>
+    <div class="map-section">
+        <h2>Ubicación</h2>
+
+        <div id="station-map"></div>
+
+        <div class="coordinates">
+            Coordenadas: -2.892421625465115, -79.03559049172041
         </div>
+    </div>
 
+    <div class="station-photo">
+        <img
+            src="images/Pictures/station_aw001.jpg"
+            alt="Estación meteorológica AW001 - Campus Universidad de Cuenca (Balzay)"
+            style="width:100%; max-width:500px; border-radius:10px;"
+        >
+    </div>
 
-        <!-- Station Location Map Section -->
-        <div class="map-section">
-            <h2>Location</h2>
-            <div id="station-map"></div>
-            <div class="coordinates">Coordinates: -2.892421625465115, -79.03559049172041</div>
-        </div>
-
-        <div class="station-photo">
-            <img src="images/Pictures/station_aw001.jpg">
-        </div>
-
-        <div class="chart-section">
+    <div class="chart-section">
 
         <div class="chart-card">
-        <h3 class="chart-title">Temperature (°C)</h3>
-        <div class="chart-wrap">
-            <canvas id="temp-chart"></canvas>
-        </div>
-        <div class="muted" id="temp-chart-info">Loading…</div>
+            <h3 class="chart-title">Temperatura (°C)</h3>
+
+            <div class="chart-wrap">
+                <canvas id="temp-chart"></canvas>
+            </div>
+
+            <div class="muted" id="temp-chart-info">
+                Cargando…
+            </div>
         </div>
 
-        <div class="chart-card" style="margin-top: 1rem;">
-        <h3 class="chart-title">Humidity (%)</h3>
-        <div class="chart-wrap">
-            <canvas id="hum-chart"></canvas>
-        </div>
-        <div class="muted" id="hum-chart-info">Loading…</div>
+
+        <!-- Pronóstico diario de temperatura -->
+        <div class="chart-card" style="margin-top: 1.5rem;">
+
+            <h3 class="chart-title">
+                Pronóstico diario de temperatura
+            </h3>
+
+            <div
+                class="chart-wrap"
+                style="height: 350px;"
+            >
+                <canvas id="forecast-temp-chart"></canvas>
+            </div>
+
+            <div
+                id="forecast-temp-info"
+                class="muted"
+                style="margin-top: 0.75rem;"
+            >
+                Cargando pronóstico de temperatura…
+            </div>
+
         </div>
 
-        <div class="chart-card" style="margin-top: 1rem;">
-            <h3 class="chart-title">Precipitation last 72 hours</h3>
+        <div class="chart-card" style="margin-top:1rem;">
+            <h3 class="chart-title">Humedad (%)</h3>
+
+            <div class="chart-wrap">
+                <canvas id="hum-chart"></canvas>
+            </div>
+
+            <div class="muted" id="hum-chart-info">
+                Cargando…
+            </div>
+        </div>
+
+        <div class="chart-card" style="margin-top:1rem;">
+            <h3 class="chart-title">
+                Precipitación en las 72 horas previas
+            </h3>
+
             <div class="chart-wrap">
                 <canvas id="rain-chart"></canvas>
             </div>
-            <div class="muted" id="rain-chart-info">Loading…</div>
-        </div>
 
-        </div>
-
-
-        <!-- Historical Data Section -->
-        <div class="historical-section">
-            <div class="table-container">
-                <table id="weather-table">
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>Temp (°C)</th>
-                            <th>Humidity (%)</th>
-                            <th>Dew Point (°C)</th>
-                            <th>Feels Like (°C)</th>
-                            <th>Wind Speed (m/s)</th>
-                            <th>Wind Gust (m/s)</th>
-                            <th>Wind Direction (°)</th>
-                            <th>Absolute Atmospheric Pressure (hPa)</th>
-                            <th>Rain Rate (mm/hr)</th>
-                            <th>Interval precipitation (mm)</th>                            
-                            <th>Solar (W/m²)</th>
-                            <th>UV Index</th>
-                           <!-- <th>Indoor Temp (°C)</th>-->
-                           <!-- <th>Indoor Humidity (%)</th>-->
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <!-- Data will be populated by JavaScript -->
-                    </tbody>
-                </table>
+            <div class="muted" id="rain-chart-info">
+                Cargando…
             </div>
-            <div class="muted" id="table-info">Loading historical data from GitHub...</div>
         </div>
-    </main>
-    
-    <!-- Footer will be inserted here -->
-    <div id="footer-placeholder"></div>
 
-    <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <!-- Pronóstico diario de precipitación -->
+        <div class="chart-card" style="margin-top: 1.5rem;">
 
-    <script>
-        const ENDPOINT = "https://api.andesaware.com/weatherstation/sensor/AW001";
-        const REFRESH_MS = 300000;
+            <h3 class="chart-title">
+                Pronóstico de precipitación para los próximos 7 días
+            </h3>
 
-        // Use the correct raw GitHub URL format
-        const CSV_URL = "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW001.csv";
+            <div class="chart-wrap">
+                <canvas id="forecast-rain-chart"></canvas>
+            </div>
 
-        // Station coordinates
-        const STATION_COORDS = [-2.892421625465115, -79.03559049172041];
+            <div
+                id="forecast-rain-info"
+                class="muted"
+                style="margin-top: 0.75rem;"
+            >
+                Cargando pronóstico de precipitación…
+            </div>
+
+        </div>
 
 
+        <div class="chart-card" style="margin-top:1rem;">
+            <h3 class="chart-title">
+                Viento durante la última hora
+            </h3>
 
-        // CORRECTED CONVERSION FUNCTIONS
-        function cToF(c){ return (c * 9/5) + 32; }  // Fixed: Celsius to Fahrenheit
-        function kmhToMph(km){ return km * 0.621371; }
-        function hpaToInHg(h){ return h * 0.02953; }
-        function mmToIn(mm){ return mm * 0.0393701; }
+            <div class="chart-wrap">
+                <canvas id="wind-rose-chart"></canvas>
+            </div>
 
-        function row(k, v){
-  return `
-    <div class="current-item">
-      <div class="k">${k}</div>
-      <div class="v">${v}</div>
+            <div class="muted" id="wind-rose-info">
+                Cargando…
+            </div>
+        </div>
+
     </div>
-  `;
-}
 
-        async function load(){
-            const status = document.getElementById('status');
-            try {
-                const res = await fetch(ENDPOINT, { cache: 'no-store' });
-                if (!res.ok) throw new Error(`http ${res.status}`);
-                const data = await res.json();
-                const ecowitt = data.ecowitt_api || {};
-                
-                // Extract values from Ecowitt API structure
-                const outdoor = ecowitt.outdoor || {};
-                const wind = ecowitt.wind || {};
-                const pressure = ecowitt.pressure || {};
-                const rainfall = ecowitt.rainfall || {};
-                const solar_uvi = ecowitt.solar_and_uvi || {};
+    <div class="historical-section">
 
+        <div class="table-container">
+            <table id="weather-table">
 
-                // Get values with fallbacks - VALUES ARE IN CELSIUS FROM JSON
-                const tempC = outdoor.temperature?.value;
-                const humid = outdoor.humidity?.value;
-                const dewC = outdoor.dew_point?.value;
-                const windMs = wind.wind_speed?.value;
-                const gustMs = wind.wind_gust?.value;
-                const wdir = wind.wind_direction?.value;
-                const pressHpa = pressure.absolute?.value ?? '—';
-                const yearlyRainMm = rainfall.yearly?.value ?? '—';
-                const rainMm = rainfall.rain_rate?.value;
-                const solar = solar_uvi.solar?.value;
-                const uv = solar_uvi.uvi?.value;
+                <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Temperatura (°C)</th>
+                    <th>Humedad (%)</th>
+                    <th>Punto de rocío (°C)</th>
+                    <th>Sensación térmica (°C)</th>
+                    <th>Velocidad del viento (m/s)</th>
+                    <th>Ráfaga de viento (m/s)</th>
+                    <th>Dirección del viento (°)</th>
+                    <th>Presión atmosférica absoluta (hPa)</th>
+                    <th>Intensidad de precipitación (mm/h)</th>
+                    <th>Precipitación por intervalo (mm)</th>
+                    <th>Radiación solar (W/m²)</th>
+                    <th>Índice UV</th>
+                </tr>
+                </thead>
 
-                // FIXED DISPLAY LOGIC - Show Celsius first, then Fahrenheit conversion
-                const rows = [
-                    row('temperature', `${tempC ?? '—'} °C`),
-                    row('feels like', `${outdoor.feels_like?.value ?? '—'} °C`),
-                    row('humidity', `${humid ?? '—'} %`),
-                    row('wind', `${windMs ?? '—'} m/s dir ${wdir ?? '—'}°`),
-                    row('gust', `${gustMs ?? '—'} m/s`),
-                    row('rain rate', `${rainMm ?? '—'} mm/hr`),
-                    row('uv index', uv ?? '—'),
-                    row('absolute pressure', `${pressHpa} hPa`)
-                    /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
-                */
-                ];
+                <tbody id="table-body"></tbody>
 
-                // Add indoor data if available
-                /*
-                if (ecowitt.indoor) {
-                    const indoorTempC = ecowitt.indoor.temperature?.value;
-                    rows.splice(3, 0, row('indoor temp', `${indoorTempC ?? '—'} °C (${indoorTempC ? cToF(parseFloat(indoorTempC)).toFixed(1) : '—'} °F)`));
-                    rows.splice(4, 0, row('indoor humidity', `${ecowitt.indoor.humidity?.value ?? '—'} %`));
-                }
-                */
-                document.getElementById('out').innerHTML = rows.join('');
-                status.textContent = `updated ${new Date().toLocaleTimeString()} • refresh ${REFRESH_MS/1000}s`;
-                status.className = "muted ok";
-            } catch (e) {
-                document.getElementById('status').textContent = `failed to load (${e.message}). retrying…`;
-                document.getElementById('status').className = "muted err";
-            }
+            </table>
+        </div>
+
+        <div class="muted" id="table-info">
+            Cargando datos históricos…
+        </div>
+
+    </div>
+
+</main>
+
+<div id="footer-placeholder"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+
+<script>
+
+    const CSV_URL =
+        "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW001.csv";
+
+    const FORECAST_TEMP_URL =
+        "https://api.open-meteo.com/v1/ecmwf" +
+        "?latitude=-2.892421625465115" +
+        "&longitude=-79.03559049172041" +
+        "&daily=temperature_2m_max,temperature_2m_mean,temperature_2m_min" +
+        "&timezone=America%2FGuayaquil" +
+        "&forecast_days=7";
+
+    const FORECAST_RAIN_URL =
+        "https://api.open-meteo.com/v1/ecmwf" +
+        "?latitude=-2.892421625465115" +
+        "&longitude=-79.03559049172041" +
+        "&daily=precipitation_sum" +
+        "&timezone=America%2FGuayaquil" +
+        "&forecast_days=7";    
+
+    const STATION_COORDS = [
+        -2.892421625465115,
+        -79.03559049172041
+    ];
+
+    let tempChart = null;
+    let humChart = null;
+    let rainChart = null;
+    let windRoseChart = null;
+    let forecastTempChart = null;
+    let forecastRainChart = null;
+
+    function row(key, value) {
+        return `
+            <div class="current-item">
+                <div class="k">${key}</div>
+                <div class="v">${value}</div>
+            </div>
+        `;
+    }
+
+    function toNumberOrNull(value) {
+        const number =
+            typeof value === "number"
+                ? value
+                : parseFloat(value);
+
+        return Number.isFinite(number)
+            ? number
+            : null;
+    }
+
+function pressureToHpa(value) {
+    const pressure = toNumberOrNull(value);
+
+    if (pressure === null) {
+        return null;
+    }
+
+    // Valores típicos en inHg: aproximadamente 20–40
+    if (pressure >= 20 && pressure <= 40) {
+        return pressure * 33.8639;
+    }
+
+    // Valores típicos en hPa: aproximadamente 800–1100
+    return pressure;
+}    
+    function parseTimestamp(timestamp) {
+        if (!timestamp) {
+            return null;
         }
 
-        // ADD MISSING CONVERSION FUNCTIONS
-        function inHgToHpa(i){ return i * 33.8638866667; }
-        function mphToKmh(m){ return m * 1.60934; }
+        const date = new Date(timestamp);
 
-        // Initialize the map
-        function initMap() {
-            const map = L.map('station-map').setView(STATION_COORDS, 15);
-            
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-            
-            // Add a marker for the weather station
-            const stationMarker = L.marker(STATION_COORDS).addTo(map)
-                .bindPopup('AW001')
-                .openPopup();
-            
-            // Add a circle to highlight the location
-            L.circle(STATION_COORDS, {
-                color: '#4b6cb7',
-                fillColor: '#4b6cb7',
+        return Number.isFinite(date.getTime())
+            ? date
+            : null;
+    }
+
+
+    function initMap() {
+        const map = L.map("station-map")
+            .setView(STATION_COORDS, 15);
+
+        L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                attribution:
+                    "© OpenStreetMap contributors"
+            }
+        ).addTo(map);
+
+        L.marker(STATION_COORDS)
+            .addTo(map)
+            .bindPopup(
+                "AW001: Campus Universidad de Cuenca (Balzay)"
+            )
+            .openPopup();
+
+        L.circle(
+            STATION_COORDS,
+            {
+                color: "#4b6cb7",
+                fillColor: "#4b6cb7",
                 fillOpacity: 0.1,
                 radius: 100
-            }).addTo(map);
+            }
+        ).addTo(map);
+    }
+
+    function parseCSV(csvText) {
+        const lines = csvText
+            .split("\n")
+            .filter(line => line.trim());
+
+        if (!lines.length) {
+            return [];
         }
 
-        // FIXED CSV PARSING - Add headers if not present
-        function parseCSV(csvText) {
-            const lines = csvText.split('\n').filter(line => line.trim());
-            
-            // Define headers based on your CSV structure
-            const headers = [
-    'timestamp',
-    'temperature_c',
-    'humidity_pct',
-    'dew_point_c',
-    'feels_like_c',
-    'wind_speed_ms',
-    'wind_gust_ms',
-    'wind_direction_deg',
-    'absolute_pressure_hpa',
-    'rain_rate_mmhr',
-    'yearly_rain_mm',
-    'solar_wm2',
-    'uv_index',
-    'indoor_temp_c',
-    'indoor_humidity_pct'
-];
-            
-            const data = [];
-            
-            // Check if first line contains headers or data
-            const firstLine = lines[0].split(',');
-            const hasHeaders = isNaN(parseFloat(firstLine[1])); // Check if second column is numeric
-            
-            let startIndex = 0;
-            if (hasHeaders) {
-                // Use existing headers if present
-                startIndex = 1;
-            }
-            
-            for (let i = startIndex; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                
-                const values = lines[i].split(',').map(v => v.trim());
-                const row = {};
-                
-                headers.forEach((header, index) => {
-                    if (index < values.length) {
-                        let value = values[index];
-                        
-                        // Convert numeric values
-                        if (header !== 'timestamp' && value && !isNaN(value) && value.trim() !== '') {
-                            value = parseFloat(value);
-                        }
-                        
-                        if (header === 'timestamp') {
-                        // remove BOM, remove surrounding quotes, trim spaces
-                        value = value.replace(/^\uFEFF/, '').replace(/^"|"$/g, '').trim();
-                        }
-                        row[header] = value;
+        const headers = [
+            "timestamp",
+            "temperature_c",
+            "humidity_pct",
+            "dew_point_c",
+            "feels_like_c",
+            "wind_speed_ms",
+            "wind_gust_ms",
+            "wind_direction_deg",
+            "absolute_pressure_hpa",
+            "rain_rate_mmhr",
+            "yearly_rain_mm",
+            "solar_wm2",
+            "uv_index",
+            "indoor_temp_c",
+            "indoor_humidity_pct"
+        ];
 
+        const firstLine = lines[0].split(",");
+        const hasHeaders =
+            isNaN(parseFloat(firstLine[1]));
 
-                    } else {
-                        row[header] = '';
+        const startIndex = hasHeaders ? 1 : 0;
+        const data = [];
+
+        for (
+            let lineIndex = startIndex;
+            lineIndex < lines.length;
+            lineIndex++
+        ) {
+            const values = lines[lineIndex]
+                .split(",")
+                .map(value => value.trim());
+
+            const record = {};
+
+            headers.forEach(
+                (header, columnIndex) => {
+                    let value =
+                        values[columnIndex] ?? "";
+
+                    if (header === "timestamp") {
+                        value = value
+                            .replace(/^\uFEFF/, "")
+                            .replace(/^"|"$/g, "")
+                            .trim();
+                    } else if (
+                        value !== "" &&
+                        !isNaN(value)
+                    ) {
+                        value = parseFloat(value);
                     }
-                });
-                
-                data.push(row);
-            }
-            
-            return data;
+
+                    record[header] = value;
+                }
+            );
+            record.absolute_pressure_hpa = pressureToHpa(record.absolute_pressure_hpa);
+            data.push(record);
         }
 
-        // Format timestamp for display
-        function formatTimestamp(timestamp) {
-            if (!timestamp) return 'Invalid Date';
-            try {
-                const date = new Date(timestamp);
-                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
-            } catch (e) {
-                return 'Invalid Date';
-            }
+        return data;
+    }
+
+    function formatTimestamp(timestamp) {
+        const date = parseTimestamp(timestamp);
+
+        if (!date) {
+            return "Fecha inválida";
         }
 
-        // FIXED TABLE POPULATION - Use the correct column names
-        
-        function addIntervalRain(data) {
-        const sorted = [...(data || [])].sort((a, b) =>
-            new Date(a.timestamp) - new Date(b.timestamp)
+        return date.toLocaleString(
+            "es-CL",
+            {
+                timeZone: "America/Guayaquil"
+            }
         );
+    }
+
+function displayLatestObservation(data) {
+    const status = document.getElementById("status");
+    const output = document.getElementById("out");
+
+    if (!data || data.length === 0) {
+        status.textContent = "No hay observaciones disponibles.";
+        status.className = "muted err";
+        output.innerHTML = "";
+        return;
+    }
+
+    const validData = data
+        .filter(record => parseTimestamp(record.timestamp))
+        .sort(
+            (a, b) =>
+                parseTimestamp(a.timestamp).getTime() -
+                parseTimestamp(b.timestamp).getTime()
+        );
+
+    if (!validData.length) {
+        status.textContent = "No hay fechas válidas disponibles.";
+        status.className = "muted err";
+        output.innerHTML = "";
+        return;
+    }
+
+    const latest = validData[validData.length - 1];
+
+    const latestTime = parseTimestamp(latest.timestamp);
+
+    const formattedTime = latestTime.toLocaleString(
+        "es-CL",
+        {
+            timeZone: "America/Guayaquil",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        }
+    );
+
+    const intervalRain = toNumberOrNull(
+        latest.interval_rain_mm
+    );
+
+    const rows = [
+        row(
+            "temperatura",
+            `${latest.temperature_c ?? "—"} °C`
+        ),
+        row(
+            "sensación térmica",
+            `${latest.feels_like_c ?? "—"} °C`
+        ),
+        row(
+            "humedad",
+            `${latest.humidity_pct ?? "—"} %`
+        ),
+        row(
+            "punto de rocío",
+            `${latest.dew_point_c ?? "—"} °C`
+        ),
+        row(
+            "viento",
+            `${latest.wind_speed_ms ?? "—"} m/s · ${latest.wind_direction_deg ?? "—"}°`
+        ),
+        row(
+            "ráfaga",
+            `${latest.wind_gust_ms ?? "—"} m/s`
+        ),
+        row(
+            "intensidad de precipitación",
+            `${latest.rain_rate_mmhr ?? "—"} mm/h`
+        ),
+        row(
+            "precipitación 15 minutos",
+            `${
+                intervalRain !== null
+                    ? intervalRain.toFixed(1)
+                    : "—"
+            } mm`
+        ),
+        row(
+            "radiación solar",
+            `${latest.solar_wm2 ?? "—"} W/m²`
+        ),
+        row(
+            "índice UV",
+            latest.uv_index ?? "—"
+        ),
+        row(
+            "presión absoluta",
+            latest.absolute_pressure_hpa != null
+                ? `${Number(latest.absolute_pressure_hpa).toFixed(1)} hPa`
+                : "—"
+        )
+    ];
+
+    output.innerHTML = rows.join("");
+
+    status.textContent =
+        `Último registro disponible: ${formattedTime}`;
+
+    status.className = "muted ok";
+}
+
+    function addIntervalRain(data) {
+        const sorted = [...(data || [])]
+            .sort(
+                (a, b) =>
+                    new Date(a.timestamp) -
+                    new Date(b.timestamp)
+            );
 
         let previous = null;
 
-        for (const row of sorted) {
-            const current = toNumberOrNull(row.yearly_rain_mm);
+        for (const record of sorted) {
+            const current =
+                toNumberOrNull(
+                    record.yearly_rain_mm
+                );
 
-            if (current === null || previous === null) {
-                row.interval_rain_mm = 0;
+            if (
+                current === null ||
+                previous === null
+            ) {
+                record.interval_rain_mm = 0;
                 previous = current;
                 continue;
             }
 
-            const diff = current - previous;
+            const difference =
+                current - previous;
 
-            if (diff >= 0) {
-                row.interval_rain_mm = diff;
-            } else {
-                // yearly counter reset:
-                // current cumulative value is rainfall since reset
-                row.interval_rain_mm = current;
-            }
+            record.interval_rain_mm =
+                difference >= 0
+                    ? difference
+                    : current;
 
             previous = current;
         }
 
         return sorted;
-    }   
+    }
 
-        // FIXED TABLE POPULATION - Use the correct column names
-        function populateTable(data) {
-            const tableBody = document.getElementById('table-body');
-            const tableInfo = document.getElementById('table-info');
-            
-            tableBody.innerHTML = '';
-            
-            if (!data || data.length === 0) {
-                tableInfo.textContent = 'No historical data available';
-                return;
-            }
-            
-            // Show only last 60 records (most recent first)                 <td>${row.indoor_temp_c !== undefined ? row.indoor_temp_c : '—'}</td> <td>${row.indoor_humidity_pct !== undefined ? row.indoor_humidity_pct : '—'}</td>
- 
-            const displayData = data.slice(-60).reverse();
-            
-            displayData.forEach(row => {
-                const tr = document.createElement('tr');
-                
-                tr.innerHTML = `
-                    <td class="timestamp">${formatTimestamp(row.timestamp)}</td>
-                    <td>${row.temperature_c !== undefined ? row.temperature_c : '—'}</td>
-                    <td>${row.humidity_pct !== undefined ? row.humidity_pct : '—'}</td>
-                    <td>${row.dew_point_c !== undefined ? row.dew_point_c : '—'}</td>
-                    <td>${row.feels_like_c !== undefined ? row.feels_like_c : '—'}</td>
-                    <td>${row.wind_speed_ms !== undefined ? row.wind_speed_ms : '—'}</td>
-                    <td>${row.wind_gust_ms !== undefined ? row.wind_gust_ms : '—'}</td>
-                    <td>${row.wind_direction_deg !== undefined ? row.wind_direction_deg : '—'}</td>  
-                    <td>${row.absolute_pressure_hpa !== undefined ? row.absolute_pressure_hpa : '—'}</td>
-                    <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
-                    <td>${row.interval_rain_mm !== undefined ? row.interval_rain_mm.toFixed(1) : '—'}</td>
-                    <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
-                    <td>${row.uv_index !== undefined ? row.uv_index : '—'}</td>                `;
-                
-                tableBody.appendChild(tr);
-            });
-            
-            tableInfo.textContent = `✓ Showing last ${displayData.length} records`;
+    function populateTable(data) {
+        const tableBody =
+            document.getElementById("table-body");
+
+        const tableInfo =
+            document.getElementById("table-info");
+
+        tableBody.innerHTML = "";
+
+        if (!data || !data.length) {
+            tableInfo.textContent =
+                "No hay datos históricos disponibles.";
+
+            return;
         }
 
-let tempChart = null;
-let humChart = null;
-let rainChart = null;
+        const displayData =
+            data.slice(-12).reverse();
 
-function makeLineChart(canvasId, yTitle, labelText) {
-    const canvas = document.getElementById(canvasId);
+        displayData.forEach(record => {
+            const tr =
+                document.createElement("tr");
 
-    return new Chart(canvas, {
-        type: "line",
-        data: {
-            datasets: [{
-                label: labelText,
-                data: [],
-                tension: 0.25,
-                pointRadius: 0,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            interaction: { mode: "index", intersect: false },
-            plugins: { legend: { display: false } },
-            scales: {
-                x: {
-                    type: "time",
-                    time: {
-                        unit: "hour",
-                        tooltipFormat: "PP HH:mm"
+            const intervalRain =
+                toNumberOrNull(
+                    record.interval_rain_mm
+                );
+
+            tr.innerHTML = `
+                <td class="timestamp">
+                    ${formatTimestamp(record.timestamp)}
+                </td>
+
+                <td>${record.temperature_c ?? "—"}</td>
+                <td>${record.humidity_pct ?? "—"}</td>
+                <td>${record.dew_point_c ?? "—"}</td>
+                <td>${record.feels_like_c ?? "—"}</td>
+                <td>${record.wind_speed_ms ?? "—"}</td>
+                <td>${record.wind_gust_ms ?? "—"}</td>
+                <td>${record.wind_direction_deg ?? "—"}</td>
+                <td>
+                    ${
+                        record.absolute_pressure_hpa !== null
+                            ? record.absolute_pressure_hpa.toFixed(1)
+                            : "—"
+                    }
+                </td>
+                <td>${record.rain_rate_mmhr ?? "—"}</td>
+
+                <td>
+                    ${
+                        intervalRain !== null
+                            ? intervalRain.toFixed(1)
+                            : "—"
+                    }
+                </td>
+
+                <td>${record.solar_wm2 ?? "—"}</td>
+                <td>${record.uv_index ?? "—"}</td>
+            `;
+
+            tableBody.appendChild(tr);
+        });
+
+        tableInfo.textContent =
+            `✓ Mostrando ${displayData.length} últimos registros`;
+    }
+
+    function makeLineChart(
+        canvasId,
+        yTitle,
+        labelText
+    ) {
+        const canvas =
+            document.getElementById(canvasId);
+
+        return new Chart(
+            canvas,
+            {
+                type: "line",
+
+                data: {
+                    datasets: [
+                        {
+                            label: labelText,
+                            data: [],
+                            tension: 0.25,
+                            pointRadius: 0,
+                            borderWidth: 2,
+                            spanGaps: true
+                        }
+                    ]
+                },
+
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+
+                    interaction: {
+                        mode: "index",
+                        intersect: false
                     },
+
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+
+                    scales: {
+                        x: {
+                            type: "time",
+
+                    time: {
+                    unit: "day",
+                    displayFormats: {
+                        day: "dd/MM/yy"
+                    },
+                    tooltipFormat: "dd/MM/yyyy HH:mm"
+                },
+
                     ticks: {
+
                         autoSkip: true,
-                        maxRotation: 0,
-                        callback: function(value, index, ticks) {
+
+                        maxTicksLimit: 12,
+
+                        maxRotation: 45,
+
+                        callback: function(value) {
+
                             const d = new Date(value);
 
-                            if (index === 0) {
-                                return d.toLocaleString([], {
-                                    month: "short",
+                            return d.toLocaleDateString(
+
+                                "es-CL",
+
+                                {
+
                                     day: "2-digit",
-                                    hour: "2-digit",
-                                    minute: "2-digit"
-                                });
+
+                                    month: "2-digit",
+
+                                    year: "2-digit"
+
+                                }
+
+                            );
+
+                        }
+
+                    }
+                        },
+
+                        y: {
+                            beginAtZero: true,
+
+                            title: {
+                                display: true,
+                                text: yTitle
                             }
+                        }
+                    }
+                }
+            }
+        );
+    }
 
-                            const prev = new Date(ticks[index - 1].value);
-                            const dayChanged =
-                                d.getFullYear() !== prev.getFullYear() ||
-                                d.getMonth() !== prev.getMonth() ||
-                                d.getDate() !== prev.getDate();
+    function makeRainChart(canvasId) {
+        const canvas =
+            document.getElementById(canvasId);
 
-                            if (dayChanged) {
-                                return d.toLocaleString([], {
-                                    month: "short",
-                                    day: "2-digit",
-                                    hour: "2-digit",
-                                    minute: "2-digit"
-                                });
+        return new Chart(canvas, {
+            data: {
+                datasets: [
+                    {
+                        type: "bar",
+                        label: "Precipitación por intervalo (mm)",
+                        data: [],
+                        yAxisID: "yInterval",
+
+                        backgroundColor: "#4A90E2",
+                        borderColor: "#2F6FB6",
+
+                        borderWidth: 1,
+                        barPercentage: 1,
+                        categoryPercentage: 1,
+                        order: 2
+                    },
+                    {
+                        type: "line",
+                        label: "Precipitación acumulada (mm)",
+                        data: [],
+                        yAxisID: "yCumulative",
+
+                        tension: 0.15,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        borderWidth: 3,
+                        spanGaps: true,
+
+                        borderColor: "#28a745",
+                        backgroundColor: "#28a745",
+
+                        order: 1
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "top"
+                    },
+
+                    tooltip: {
+                        callbacks: {
+                            label(context) {
+                                const value =
+                                    context.parsed.y;
+
+                                return `${context.dataset.label}: ${
+                                    Number.isFinite(value)
+                                        ? value.toFixed(1)
+                                        : "—"
+                                } mm`;
                             }
-
-                            return d.toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit"
-                            });
                         }
                     }
                 },
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: yTitle }
+
+                scales: {
+                    x: {
+                        type: "time",
+
+                        time: {
+                            unit: "hour",
+                            tooltipFormat: "PP HH:mm"
+                        },
+
+                        ticks: {
+                            autoSkip: true,
+                            maxRotation: 0
+                        }
+                    },
+
+                    yInterval: {
+                        beginAtZero: true,
+                        position: "left",
+
+                        title: {
+                            display: true,
+                            text: "Precipitación por intervalo (mm)"
+                        }
+                    },
+
+                    yCumulative: {
+                        beginAtZero: true,
+                        position: "right",
+
+                        grid: {
+                            drawOnChartArea: false
+                        },
+
+                        title: {
+                            display: true,
+                            text: "Precipitación acumulada (mm)"
+                        }
+                    }
                 }
             }
-        }
-    });
-}
-
-function updateChart(chart, x, y) {
-    chart.data.datasets[0].data = x.map((xi, i) => ({ x: xi, y: y[i] }));
-    chart.update("none");
-}
-
-function toNumberOrNull(v) {
-    const n = (typeof v === "number") ? v : parseFloat(v);
-    return Number.isFinite(n) ? n : null;
-}
-
-function buildSeries(data) {
-    const sorted = [...(data || [])].sort((a, b) =>
-        new Date(a.timestamp) - new Date(b.timestamp)
-    );
-
-    const x = [];
-    const temp = [];
-    const hum = [];
-    const rain = [];
-
-    for (const r of sorted) {
-        const d = new Date(r.timestamp);
-        if (!Number.isFinite(d.getTime())) continue;
-
-        x.push(d.getTime());
-        temp.push(toNumberOrNull(r.temperature_c));
-        hum.push(toNumberOrNull(r.humidity_pct));
-
-        // yearly cumulative rain from GitHub CSV
-        rain.push(toNumberOrNull(r.yearly_rain_mm));
+        });
     }
 
-    // Convert yearly cumulative rainfall to interval rainfall
-    const rainInterval = [];
+    function makeForecastTempChart(canvasId) {
 
-    for (let i = 0; i < rain.length; i++) {
+        const canvas =
+            document.getElementById(canvasId);
 
-        if (i === 0 || rain[i] === null || rain[i - 1] === null) {
-            rainInterval.push(0);
-            continue;
+        if (!canvas) {
+            console.error(
+                `No se encontró el canvas: ${canvasId}`
+            );
+
+            return null;
         }
 
-        const diff = rain[i] - rain[i - 1];
+        return new Chart(canvas, {
+            type: "line",
 
-        if (diff >= 0) {
-            rainInterval.push(diff);
-        } else {
-            // yearly counter reset: current value is rainfall since reset
-            rainInterval.push(rain[i]);
+            data: {
+                labels: [],
+
+                datasets: [
+                    {
+                        label: "Temperatura máxima",
+                        data: [],
+                        borderColor: "#d21428",
+                        backgroundColor: "#d21428",
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.25,
+                        fill: false
+                    },
+                    {
+                        label: "Temperatura media",
+                        data: [],
+                        borderColor: "#e69b0a",
+                        backgroundColor: "#e69b0a",
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.25,
+                        fill: false
+                    },
+                    {
+                        label: "Temperatura mínima",
+                        data: [],
+                        borderColor: "#4A90E2",
+                        backgroundColor: "#4A90E2",
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.25,
+                        fill: false
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "top"
+                    },
+
+                    tooltip: {
+                        callbacks: {
+                            label(context) {
+
+                                const value =
+                                    Number(context.raw);
+
+                                const label =
+                                    context.dataset.label;
+
+                                return (
+                                    label +
+                                    ": " +
+                                    (
+                                        Number.isFinite(value)
+                                            ? value.toFixed(1)
+                                            : "—"
+                                    ) +
+                                    " °C"
+                                );
+                            }
+                        }
+                    }
+                },
+
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Día del pronóstico"
+                        },
+
+                        grid: {
+                            display: false
+                        }
+                    },
+
+                    y: {
+                        title: {
+                            display: true,
+                            text: "Temperatura del aire (°C)"
+                        },
+
+                        ticks: {
+                            callback(value) {
+                                return value + " °C";
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }    
+
+    async function loadTemperatureForecast() {
+
+        const info =
+            document.getElementById(
+                "forecast-temp-info"
+            );
+
+        try {
+
+            const response =
+                await fetch(
+                    FORECAST_TEMP_URL,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Error HTTP ${response.status}`
+                );
+            }
+
+            const forecast =
+                await response.json();
+
+            const dates =
+                forecast.daily?.time ?? [];
+
+            const maximum =
+                forecast.daily
+                    ?.temperature_2m_max ?? [];
+
+            const mean =
+                forecast.daily
+                    ?.temperature_2m_mean ?? [];
+
+            const minimum =
+                forecast.daily
+                    ?.temperature_2m_min ?? [];
+
+            if (
+                dates.length === 0 ||
+                maximum.length === 0 ||
+                mean.length === 0 ||
+                minimum.length === 0
+            ) {
+                throw new Error(
+                    "La API no devolvió todas las variables de temperatura"
+                );
+            }
+
+            const labels =
+                dates.map(formatForecastDate);
+
+            const maxValues =
+                maximum.map(toForecastNumber);
+
+            const meanValues =
+                mean.map(toForecastNumber);
+
+            const minValues =
+                minimum.map(toForecastNumber);
+
+            if (!forecastTempChart) {
+
+                forecastTempChart =
+                    makeForecastTempChart(
+                        "forecast-temp-chart"
+                    );
+            }
+
+            if (!forecastTempChart) {
+                throw new Error(
+                    "No se pudo crear el gráfico de temperatura"
+                );
+            }
+
+            forecastTempChart.data.labels =
+                labels;
+
+            forecastTempChart
+                .data
+                .datasets[0]
+                .data =
+                maxValues;
+
+            forecastTempChart
+                .data
+                .datasets[1]
+                .data =
+                meanValues;
+
+            forecastTempChart
+                .data
+                .datasets[2]
+                .data =
+                minValues;
+
+            forecastTempChart.update();
+
+            const highestTemp =
+                Math.max(
+                    ...maxValues.filter(
+                        Number.isFinite
+                    )
+                );
+
+            const lowestTemp =
+                Math.min(
+                    ...minValues.filter(
+                        Number.isFinite
+                    )
+                );
+
+            const highestIndex =
+                maxValues.indexOf(highestTemp);
+
+            const lowestIndex =
+                minValues.indexOf(lowestTemp);
+
+            info.innerHTML = `
+                ✓ Mayor temperatura máxima:
+                <strong>
+                    ${highestTemp.toFixed(1)} °C
+                </strong>
+                el ${labels[highestIndex] ?? "—"}
+
+                <br>
+
+                ✓ Menor temperatura mínima:
+                <strong>
+                    ${lowestTemp.toFixed(1)} °C
+                </strong>
+                el ${labels[lowestIndex] ?? "—"}
+
+                <br>
+
+                <small class="forecast-source">
+                    Datos de pronóstico:
+                    <a
+                        href="https://open-meteo.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        Open-Meteo
+                    </a>,
+                    modelo ECMWF.
+                    Licencia:
+                    <a
+                        href="https://creativecommons.org/licenses/by/4.0/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        CC BY 4.0
+                    </a>.
+                    Datos procesados para su visualización.
+                </small>
+            `;
+
+        } catch (error) {
+
+            console.error(
+                "Error cargando pronóstico de temperatura:",
+                error
+            );
+
+            if (info) {
+                info.textContent =
+                    "No fue posible cargar el pronóstico " +
+                    "de temperatura.";
+
+                info.classList.add("err");
+            }
         }
     }
 
-    return { x, temp, hum, rain: rainInterval };
-}
+    function makeForecastRainChart(canvasId) {
+
+        const canvas =
+            document.getElementById(canvasId);
+
+        if (!canvas) {
+            console.error(
+                `No se encontró el canvas: ${canvasId}`
+            );
+
+            return null;
+        }
+
+        return new Chart(canvas, {
+            type: "bar",
+
+            data: {
+                labels: [],
+
+                datasets: [
+                    {
+                        label:
+                            "Precipitación pronosticada (mm/día)",
+
+                        data: [],
+
+                        backgroundColor:
+                            "#4A90E2",
+
+                        borderColor:
+                            "#2F6FB6",
+
+                        borderWidth: 1,
+
+                        borderRadius: 4,
+
+                        maxBarThickness: 65
+                    }
+                ]
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "top"
+                    },
+
+                    tooltip: {
+                        callbacks: {
+                            label(context) {
+
+                                const value =
+                                    Number(context.raw);
+
+                                return (
+                                    "Precipitación: " +
+                                    (
+                                        Number.isFinite(value)
+                                            ? value.toFixed(1)
+                                            : "—"
+                                    ) +
+                                    " mm"
+                                );
+                            }
+                        }
+                    }
+                },
+
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: "Día del pronóstico"
+                        },
+
+                        grid: {
+                            display: false
+                        }
+                    },
+
+                    y: {
+                        beginAtZero: true,
+
+                        title: {
+                            display: true,
+                            text:
+                                "Precipitación acumulada diaria (mm)"
+                        },
+
+                        ticks: {
+                            callback(value) {
+                                return value + " mm";
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
 
-function filterSeriesLastHours(x, y, hours) {
-    const now = Date.now();
-    const cutoff = now - hours * 60 * 60 * 1000;
+    function formatForecastDate(dateString) {
 
-    const xf = [];
-    const yf = [];
+        const date =
+            new Date(
+                dateString + "T12:00:00"
+            );
 
-    for (let i = 0; i < x.length; i++) {
-        if (x[i] >= cutoff) {
-            xf.push(x[i]);
-            yf.push(y[i]);
+        if (
+            Number.isNaN(
+                date.getTime()
+            )
+        ) {
+            return dateString;
+        }
+
+        const weekday =
+            date.toLocaleDateString(
+                "es-CL",
+                {
+                    weekday: "short"
+                }
+            );
+
+        const dayMonth =
+            date.toLocaleDateString(
+                "es-CL",
+                {
+                    day: "2-digit",
+                    month: "2-digit"
+                }
+            );
+
+        return `${weekday} ${dayMonth}`;
+    }
+
+    async function loadCSVData() {
+        const tableInfo =
+            document.getElementById(
+                "table-info"
+            );
+
+        try {
+            tableInfo.textContent =
+                "Cargando datos históricos…";
+
+            const response =
+                await fetch(
+                    CSV_URL,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}: ${response.statusText}`
+                );
+            }
+
+            const csvText =
+                await response.text();
+
+            let csvData =
+                parseCSV(csvText);
+
+            csvData =
+                addIntervalRain(csvData);
+                displayLatestObservation(csvData);
+            renderHistoricalCharts(
+                csvData
+            );
+
+            renderWindRose(
+                csvData
+            );
+
+            const last10Hours =
+                filterLastHours(
+                    csvData,
+                    10
+                );
+
+            populateTable(
+                last10Hours
+            );
+
+        } catch (error) {
+            console.error(
+                "Error cargando datos históricos:",
+                error
+            );
+
+            tableInfo.textContent =
+                `Error al cargar datos: ${error.message}`;
+
+            tableInfo.className =
+                "muted err";
+
+            document.getElementById(
+                "wind-rose-info"
+            ).textContent =
+                `Error al cargar datos de viento: ${error.message}`;
         }
     }
 
-    return { x: xf, y: yf };
-}
+    function toForecastNumber(value) {
 
+        const number =
+            Number(value);
+
+        return Number.isFinite(number)
+            ? number
+            : null;
+    }    
+
+    async function loadRainForecast() {
+
+        const info =
+            document.getElementById(
+                "forecast-rain-info"
+            );
+
+        try {
+
+            const response =
+                await fetch(
+                    FORECAST_RAIN_URL,
+                    {
+                        cache: "no-store"
+                    }
+                );
+
+            if (!response.ok) {
+                throw new Error(
+                    `Error HTTP ${response.status}`
+                );
+            }
+
+            const forecast =
+                await response.json();
+
+            const dates =
+                forecast.daily?.time ?? [];
+
+            const precipitation =
+                forecast.daily
+                    ?.precipitation_sum ?? [];
+
+            if (
+                dates.length === 0 ||
+                precipitation.length === 0
+            ) {
+                throw new Error(
+                    "La API no devolvió el pronóstico diario"
+                );
+            }
+
+            if (
+                dates.length !==
+                precipitation.length
+            ) {
+                throw new Error(
+                    "Las fechas y los valores de precipitación no coinciden"
+                );
+            }
+
+            const labels =
+                dates.map(formatForecastDate);
+
+            const values =
+                precipitation.map(value => {
+
+                    const number =
+                        Number(value);
+
+                    return Number.isFinite(number)
+                        ? number
+                        : 0;
+                });
+
+            if (!forecastRainChart) {
+
+                forecastRainChart =
+                    makeForecastRainChart(
+                        "forecast-rain-chart"
+                    );
+            }
+
+            if (!forecastRainChart) {
+                throw new Error(
+                    "No se pudo crear el gráfico"
+                );
+            }
+
+            forecastRainChart.data.labels =
+                labels;
+
+            forecastRainChart
+                .data
+                .datasets[0]
+                .data =
+                values;
+
+            forecastRainChart.update();
+
+            const total =
+                values.reduce(
+                    (sum, value) =>
+                        sum + value,
+                    0
+                );
+
+            const maximum =
+                Math.max(...values);
+
+            const maximumIndex =
+                values.indexOf(maximum);
+
+            const maximumDate =
+                labels[maximumIndex] ?? "—";
+
+            info.innerHTML = `
+                ✓ Precipitación total pronosticada
+                para los próximos ${values.length} días:
+                <strong>${total.toFixed(1)} mm</strong>
+
+                <br>
+
+                ✓ Mayor acumulado diario:
+                <strong>${maximum.toFixed(1)} mm</strong>
+                el ${maximumDate}
+
+                <br>
+
+                <small class="forecast-source">
+
+                    Datos de pronóstico:
+
+                    <a
+
+                        href="https://open-meteo.com/"
+
+                        target="_blank"
+
+                        rel="noopener noreferrer"
+
+                    >
+
+                        Open-Meteo
+
+                    </a>,
+
+                    modelo ECMWF IFS.
+
+                    Licencia:
+
+                    <a
+
+                        href="https://creativecommons.org/licenses/by/4.0/"
+
+                        target="_blank"
+
+                        rel="noopener noreferrer"
+
+                    >
+
+                        CC BY 4.0
+
+                    </a>.
+
+                    Los datos fueron procesados para calcular y visualizar
+
+                    acumulados diarios.
+
+                </small>
+            `;
+
+        } catch (error) {
+
+            console.error(
+                "Error al cargar el pronóstico:",
+                error
+            );
+
+            if (info) {
+                info.textContent =
+                    "No fue posible cargar el pronóstico " +
+                    "de precipitación.";
+
+                info.classList.add("err");
+            }
+        }
+    }
+
+
+
+    function directionToCompassIndex(directionDegrees) {
+        const normalized =
+            ((directionDegrees % 360) + 360) % 360;
+
+        return Math.round(normalized / 22.5) % 16;
+    }
+
+    function makeWindRoseChart(
+        datasets,
+        maximumSpeed
+    ) {
+        const canvas =
+            document.getElementById(
+                "wind-rose-chart"
+            );
+
+        const labels = [
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSO",
+            "SO",
+            "OSO",
+            "O",
+            "ONO",
+            "NO",
+            "NNO"
+        ];
+
+        return new Chart(canvas, {
+            type: "radar",
+
+            data: {
+                labels,
+                datasets
+            },
+
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+
+                interaction: {
+                    mode: "nearest",
+                    intersect: true
+                },
+
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: "top",
+
+                        labels: {
+                            usePointStyle: true,
+                            boxWidth: 8
+                        }
+                    },
+
+                    tooltip: {
+                        callbacks: {
+                            title(context) {
+                                return context[0]
+                                    .dataset
+                                    .label;
+                            },
+
+                            label(context) {
+                                const details =
+                                    context.dataset
+                                        .windDetails;
+
+                                if (!details) {
+                                    return "";
+                                }
+
+                                return [
+                                    `Dirección: ${details.direction.toFixed(0)}°`,
+                                    `Velocidad: ${details.speed.toFixed(2)} m/s`,
+                                    `Ráfaga: ${
+                                        details.gust !== null
+                                            ? details.gust.toFixed(2)
+                                            : "—"
+                                    } m/s`
+                                ];
+                            }
+                        }
+                    }
+                },
+
+                scales: {
+                    r: {
+                        beginAtZero: true,
+
+                        suggestedMax:
+                            Math.max(
+                                maximumSpeed * 1.2,
+                                2
+                            ),
+
+                        angleLines: {
+                            display: true
+                        },
+
+                        grid: {
+                            circular: true
+                        },
+
+                        ticks: {
+                            backdropColor:
+                                "transparent",
+
+                            callback(value) {
+                                return `${value} m/s`;
+                            }
+                        },
+
+                        pointLabels: {
+                            font: {
+                                size: 13,
+                                weight: "bold"
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderWindRose(data) {
+        const info =
+            document.getElementById(
+                "wind-rose-info"
+            );
+
+        const cutoff =
+            Date.now() -
+            60 * 60 * 1000;
+
+        const recentRecords =
+            [...(data || [])]
+                .filter(record => {
+                    const date =
+                        parseTimestamp(
+                            record.timestamp
+                        );
+
+                    return (
+                        date &&
+                        date.getTime() >= cutoff
+                    );
+                })
+                .sort(
+                    (a, b) =>
+                        new Date(a.timestamp) -
+                        new Date(b.timestamp)
+                );
+
+        const validRecords =
+            recentRecords.filter(record => {
+                const direction =
+                    toNumberOrNull(
+                        record.wind_direction_deg
+                    );
+
+                const speed =
+                    toNumberOrNull(
+                        record.wind_speed_ms
+                    );
+
+                return (
+                    direction !== null &&
+                    speed !== null
+                );
+            });
+
+        if (!validRecords.length) {
+            info.textContent =
+                "No hay datos válidos de viento durante la última hora.";
+
+            if (windRoseChart) {
+                windRoseChart.destroy();
+                windRoseChart = null;
+            }
+
+            return;
+        }
+
+        const colors = [
+            "#223c6a",
+            "#e69b0a",
+            "#28a745",
+            "#d21428",
+            "#6f42c1",
+            "#17a2b8",
+            "#fd7e14",
+            "#20c997",
+            "#4a90e2",
+            "#8e44ad",
+            "#34495e",
+            "#c0392b"
+        ];
+
+        let maximumSpeed = 0;
+
+        const datasets =
+            validRecords.map(
+                (record, index) => {
+                    const direction =
+                        toNumberOrNull(
+                            record.wind_direction_deg
+                        );
+
+                    const speed =
+                        toNumberOrNull(
+                            record.wind_speed_ms
+                        );
+
+                    const gust =
+                        toNumberOrNull(
+                            record.wind_gust_ms
+                        );
+
+                    maximumSpeed =
+                        Math.max(
+                            maximumSpeed,
+                            speed,
+                            gust ?? 0
+                        );
+
+                    const compassIndex =
+                        directionToCompassIndex(
+                            direction
+                        );
+
+                    const values =
+                        new Array(16).fill(null);
+
+                    values[compassIndex] =
+                        speed;
+
+                    const observationTime =
+                        parseTimestamp(
+                            record.timestamp
+                        );
+
+                    const localTime =
+                        observationTime
+                            ? observationTime
+                                .toLocaleTimeString(
+                                    "es-CL",
+                                    {
+                                        timeZone:
+                                            "America/Guayaquil",
+                                        hour:
+                                            "2-digit",
+                                        minute:
+                                            "2-digit"
+                                    }
+                                )
+                            : "—";
+
+                    const color =
+                        colors[
+                            index %
+                            colors.length
+                        ];
+
+                    return {
+                        label: localTime,
+
+                        data: values,
+
+                        showLine: false,
+
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+
+                        pointBackgroundColor:
+                            color,
+
+                        pointBorderColor:
+                            "#ffffff",
+
+                        pointBorderWidth: 1,
+
+                        borderColor:
+                            color,
+
+                        backgroundColor:
+                            color,
+
+                        windDetails: {
+                            direction,
+                            speed,
+                            gust
+                        }
+                    };
+                }
+            );
+
+        if (windRoseChart) {
+            windRoseChart.destroy();
+        }
+
+        windRoseChart =
+            makeWindRoseChart(
+                datasets,
+                maximumSpeed
+            );
+
+        info.textContent =
+            `✓ ${validRecords.length} mediciones durante los últimos 60 minutos. Cada punto representa una observación.`;
+    }
+
+    function updateChart(
+        chart,
+        x,
+        y
+    ) {
+        chart.data.datasets[0].data =
+            x.map(
+                (timestamp, index) => ({
+                    x: timestamp,
+                    y: y[index]
+                })
+            );
+
+        chart.update("none");
+    }
+
+    function buildSeries(data) {
+        const sorted = [...(data || [])]
+            .sort(
+                (a, b) =>
+                    new Date(a.timestamp) -
+                    new Date(b.timestamp)
+            );
+
+        const x = [];
+        const temperature = [];
+        const humidity = [];
+        const cumulativeYearRain = [];
+     
+        for (const record of sorted) {
+            const date =
+                parseTimestamp(
+                    record.timestamp
+                );
+
+            if (!date) {
+                continue;
+            }
+
+            x.push(date.getTime());
+
+            temperature.push(
+                toNumberOrNull(
+                    record.temperature_c
+                )
+            );
+
+            humidity.push(
+                toNumberOrNull(
+                    record.humidity_pct
+                )
+            );
+
+            cumulativeYearRain.push(
+                toNumberOrNull(
+                    record.yearly_rain_mm
+                )
+            );
+        }
+
+        const intervalRain = [];
+
+        for (
+            let index = 0;
+            index < cumulativeYearRain.length;
+            index++
+        ) {
+            const current =
+                cumulativeYearRain[index];
+
+            const previous =
+                index > 0
+                    ? cumulativeYearRain[index - 1]
+                    : null;
+
+            if (
+                current === null ||
+                previous === null
+            ) {
+                intervalRain.push(0);
+                continue;
+            }
+
+            const difference =
+                current - previous;
+
+            intervalRain.push(
+                difference >= 0
+                    ? difference
+                    : current
+            );
+        }
+
+        return {
+            x,
+            temp: temperature,
+            hum: humidity,
+            rain: intervalRain
+        };
+    }
+
+    function filterSeriesLastHours(
+        x,
+        y,
+        hours
+    ) {
+        const cutoff =
+            Date.now() -
+            hours * 60 * 60 * 1000;
+
+        const filteredX = [];
+        const filteredY = [];
+
+        for (
+            let index = 0;
+            index < x.length;
+            index++
+        ) {
+            if (x[index] >= cutoff) {
+                filteredX.push(x[index]);
+                filteredY.push(y[index]);
+            }
+        }
+
+        return {
+            x: filteredX,
+            y: filteredY
+        };
+    }
 function renderHistoricalCharts(data) {
-    const { x, temp, hum, rain } = buildSeries(data);
+    const {
+        x,
+        temp,
+        hum,
+        rain
+    } = buildSeries(data);
 
     if (!x.length) {
-        document.getElementById("temp-chart-info").textContent = "No valid timestamps to plot.";
-        document.getElementById("hum-chart-info").textContent = "No valid timestamps to plot.";
-        document.getElementById("rain-chart-info").textContent = "No valid timestamps to plot.";
+        document.getElementById(
+            "temp-chart-info"
+        ).innerHTML = `
+            ✓ ${x.length} registros
+            <br>
+            ✓ Últimas 24 horas ·
+            temperatura mínima:
+            <strong>${
+                tempMin !== null
+                    ? tempMin.toFixed(1)
+                    : "—"
+            } °C</strong>
+            · temperatura máxima:
+            <strong>${
+                tempMax !== null
+                    ? tempMax.toFixed(1)
+                    : "—"
+            } °C</strong>
+        `;
+
+        document.getElementById(
+            "hum-chart-info"
+        ).textContent = "No hay fechas válidas.";
+
+        document.getElementById(
+            "rain-chart-info"
+        ).textContent = "No hay fechas válidas.";
+
         return;
     }
 
-    if (!tempChart) tempChart = makeLineChart("temp-chart", "°C", "Temperature (°C)");
-    if (!humChart) humChart = makeLineChart("hum-chart", "%", "Humidity (%)");
-    if (!rainChart) rainChart = makeLineChart("rain-chart", "mm", "Interval rainfall (mm)");
+    // --------------------------------------------------
+    // Crear gráficos
+    // --------------------------------------------------
 
-    updateChart(tempChart, x, temp);
-    updateChart(humChart, x, hum);
+    if (!tempChart) {
+        tempChart = makeLineChart(
+            "temp-chart",
+            "°C",
+            "Temperatura (°C)"
+        );
+    }
 
-    const rain72 = filterSeriesLastHours(x, rain, 72);
-    updateChart(rainChart, rain72.x, rain72.y);
+    if (!humChart) {
+        humChart = makeLineChart(
+            "hum-chart",
+            "%",
+            "Humedad (%)"
+        );
+    }
 
-    document.getElementById("temp-chart-info").textContent = `✓ Plotting ${x.length} records`;
-    document.getElementById("hum-chart-info").textContent = `✓ Plotting ${x.length} records`;
-    document.getElementById("rain-chart-info").textContent = `✓ Plotting last ${rain72.x.length} records from the last 72 hours`;
+    if (!rainChart) {
+        rainChart = makeRainChart(
+            "rain-chart"
+        );
+    }
+
+    updateChart(
+        tempChart,
+        x,
+        temp
+    );
+
+    updateChart(
+        humChart,
+        x,
+        hum
+    );
+
+            // ----------------------------------------
+    // Temperatura mínima y máxima últimas 24 h
+    // ----------------------------------------
+
+    const temp24 = filterSeriesLastHours(
+        x,
+        temp,
+        24
+    );
+
+    const validTemp =
+        temp24.y.filter(
+            value => Number.isFinite(value)
+        );
+
+    const tempMin =
+        validTemp.length
+            ? Math.min(...validTemp)
+            : null;
+
+    const tempMax =
+        validTemp.length
+            ? Math.max(...validTemp)
+            : null;
+
+
+    // --------------------------------------------------
+    // Precipitación acumulada durante las últimas 72 horas
+    // --------------------------------------------------
+
+    const rain72 = filterSeriesLastHours(
+        x,
+        rain,
+        72
+    );
+
+    const cumulativeRain72 = [];
+    let totalRain72 = 0;
+
+    for (
+        let index = 0;
+        index < rain72.y.length;
+        index++
+    ) {
+        const intervalValue =
+            toNumberOrNull(
+                rain72.y[index]
+            ) ?? 0;
+
+        totalRain72 += intervalValue;
+
+        cumulativeRain72.push(
+            totalRain72
+        );
+    }
+
+    const rain24 = filterSeriesLastHours(
+    x,
+    rain,
+    24
+);
+
+    let totalRain24 = 0;
+
+    for (
+        let index = 0;
+        index < rain24.y.length;
+        index++
+    ) {
+        totalRain24 +=
+            toNumberOrNull(
+                rain24.y[index]
+            ) ?? 0;
+    }
+
+
+
+
+    // Barras: precipitación por intervalo
+    rainChart.data.datasets[0].data =
+        rain72.x.map(
+            (timestamp, index) => ({
+                x: timestamp,
+                y:
+                    toNumberOrNull(
+                        rain72.y[index]
+                    ) ?? 0
+            })
+        );
+
+    // Línea: precipitación acumulada en 72 horas
+    rainChart.data.datasets[1].data =
+        rain72.x.map(
+            (timestamp, index) => ({
+                x: timestamp,
+                y: cumulativeRain72[index]
+            })
+        );
+
+    rainChart.update("none");
+
+    // --------------------------------------------------
+    // Ordenar y validar registros históricos
+    // --------------------------------------------------
+
+    const validRecords = [...(data || [])]
+        .filter(record => {
+            const date =
+                parseTimestamp(
+                    record.timestamp
+                );
+
+            const yearlyRain =
+                toNumberOrNull(
+                    record.yearly_rain_mm
+                );
+
+            return (
+                date !== null &&
+                yearlyRain !== null
+            );
+        })
+        .sort(
+            (a, b) =>
+                parseTimestamp(a.timestamp).getTime() -
+                parseTimestamp(b.timestamp).getTime()
+        );
+
+    let monthlyRain = null;
+    let annualRain = null;
+    let latestDate = null;
+
+    if (validRecords.length > 0) {
+        const latestRecord =
+            validRecords[
+                validRecords.length - 1
+            ];
+
+        latestDate =
+            parseTimestamp(
+                latestRecord.timestamp
+            );
+
+        const latestYearlyRain =
+            toNumberOrNull(
+                latestRecord.yearly_rain_mm
+            );
+
+        // El último valor del contador anual representa
+        // la precipitación acumulada desde el 1 de enero.
+        annualRain = latestYearlyRain;
+
+        const firstDayCurrentMonth =
+            new Date(
+                latestDate.getFullYear(),
+                latestDate.getMonth(),
+                1,
+                0,
+                0,
+                0,
+                0
+            );
+
+        let yearlyRainBeforeMonth = null;
+
+        // Buscar el último acumulado anual anterior
+        // al inicio del mes actual.
+        for (const record of validRecords) {
+            const recordDate =
+                parseTimestamp(
+                    record.timestamp
+                );
+
+            if (
+                recordDate >=
+                firstDayCurrentMonth
+            ) {
+                break;
+            }
+
+            const yearlyRain =
+                toNumberOrNull(
+                    record.yearly_rain_mm
+                );
+
+            if (yearlyRain !== null) {
+                yearlyRainBeforeMonth =
+                    yearlyRain;
+            }
+        }
+
+        if (latestYearlyRain !== null) {
+            // En enero, el contador anual comienza desde cero.
+            if (
+                latestDate.getMonth() === 0
+            ) {
+                monthlyRain =
+                    latestYearlyRain;
+            } else if (
+                yearlyRainBeforeMonth !== null
+            ) {
+                monthlyRain =
+                    latestYearlyRain -
+                    yearlyRainBeforeMonth;
+
+                // Protección ante un reinicio inesperado
+                // del contador acumulado.
+                if (monthlyRain < 0) {
+                    monthlyRain =
+                        latestYearlyRain;
+                }
+            } else {
+                // No se puede calcular correctamente el mes
+                // si no existe un registro anterior al mes.
+                monthlyRain = null;
+            }
+        }
+    }
+
+    // --------------------------------------------------
+    // Información debajo de los gráficos
+    // --------------------------------------------------
+
+    document.getElementById(
+        "temp-chart-info"
+    ).innerHTML = `
+        ✓ ${x.length} registros
+        <br>
+        ✓ Últimas 24 horas · temperatura mínima:
+        <strong>${
+            tempMin !== null
+                ? tempMin.toFixed(1)
+                : "—"
+        } °C</strong>
+        · temperatura máxima:
+        <strong>${
+            tempMax !== null
+                ? tempMax.toFixed(1)
+                : "—"
+        } °C</strong>
+    `;
+    document.getElementById(
+        "hum-chart-info"
+    ).textContent =
+        `✓ ${x.length} registros`;
+
+    const monthName =
+        latestDate
+            ? latestDate.toLocaleDateString(
+                "es-CL",
+                {
+                    month: "long",
+                    year: "numeric"
+                }
+            )
+            : "mes actual";
+
+    const year =
+        latestDate
+            ? latestDate.getFullYear()
+            : 2026;
+
+  document.getElementById(
+    "rain-chart-info"
+).innerHTML = `
+    ✓ Últimas 24 horas · precipitación acumulada:
+    <strong>${totalRain24.toFixed(1)} mm</strong>
+    <br>
+
+    ✓ Últimas 72 horas · precipitación acumulada:
+    <strong>${totalRain72.toFixed(1)} mm</strong>
+    <br>
+
+    ✓ Precipitación acumulada en ${monthName}:
+    <strong>${
+        monthlyRain !== null
+            ? monthlyRain.toFixed(1)
+            : "—"
+    } mm</strong>
+    <br>
+
+    ✓ Precipitación acumulada desde el 1 de enero de ${year}:
+    <strong>${
+        annualRain !== null
+            ? annualRain.toFixed(1)
+            : "—"
+    } mm</strong>
+`;
 }
 
+    function filterLastHours(
+        data,
+        hours = 10
+    ) {
+        const cutoff =
+            Date.now() -
+            hours * 60 * 60 * 1000;
 
-        function filterLastHours(data, hours = 10) {
-            const now = Date.now();
-            const cutoff = now - hours * 60 * 60 * 1000;
+        return (data || []).filter(
+            record => {
+                const date =
+                    parseTimestamp(
+                        record.timestamp
+                    );
 
-            return (data || []).filter(r => {
-                const t = new Date(r.timestamp).getTime();
-                return Number.isFinite(t) && t >= cutoff;
-            });
-        }
-
-
-        // Fetch CSV data from GitHub
-        async function loadCSVData() {
-            try {
-                const tableInfo = document.getElementById('table-info');
-                tableInfo.textContent = 'Fetching data from GitHub...';
-                
-                const response = await fetch(CSV_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const csvText = await response.text();
-                console.log('Raw CSV data:', csvText); // Debug log
-                
-                
-                
-                let csvData = parseCSV(csvText);
-                csvData = addIntervalRain(csvData);
-                console.log('Parsed CSV data:', csvData);
-                
-                // keep only last 100 hours for charts
-                renderHistoricalCharts(csvData);
-
-                // keep only last 10 hours for table
-                const last10h = filterLastHours(csvData, 10);
-                populateTable(last10h);
-
-
-            } catch (error) {
-                console.error('Error loading CSV:', error);
-                document.getElementById('table-info').textContent = `Error loading data: ${error.message}`;
-                document.getElementById('table-info').className = "muted err";
+                return (
+                    date &&
+                    date.getTime() >= cutoff
+                );
             }
-        }
+        );
+    }
 
-        // Components auto-loaded
-        async function loadComponents() {
-            try {
-                const res = await fetch('components.html');
-                const text = await res.text();
 
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = text;
 
-                const logoBar = tempDiv.querySelector('#logo-bar');
-                if (logoBar) {
-                    document.body.insertBefore(logoBar, document.body.firstChild);
-                }
+    async function loadComponents() {
+        try {
+            const response =
+                await fetch(
+                    "components.html"
+                );
 
-                const nav = tempDiv.querySelector('#shared-nav');
-                if (nav) {
-                    const navPlaceholder = document.getElementById('nav-placeholder');
-                    navPlaceholder.parentNode.replaceChild(nav, navPlaceholder);
-                }
-
-                const footer = tempDiv.querySelector('#shared-footer');
-                if (footer) {
-                    const footerPlaceholder = document.getElementById('footer-placeholder');
-                    footerPlaceholder.parentNode.replaceChild(footer, footerPlaceholder);
-                }
-            } catch (error) {
-                console.error('Error loading components:', error);
-                // Fallback navigation if components.html is not available
-                document.getElementById('nav-placeholder').innerHTML = `
-                    <nav style="padding: 1rem; background: #2c3e50; color: white;">
-                        <a href="/" style="color: white; text-decoration: none; font-weight: bold;">Home</a> | 
-                        <a href="/weather.html" style="color: white; text-decoration: none;">Weather Station</a>
-                    </nav>
-                `;
-                
-                document.getElementById('footer-placeholder').innerHTML = `
-                    <footer style="text-align: center; padding: 2rem; background: #f5f5f5;">
-                        <p>Weather Station Data - Universidad de Concepción (campus Chillán), Chile</p>
-                    </footer>
-                `;
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}`
+                );
             }
-        }
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load navigation and footer components
+            const text =
+                await response.text();
+
+            const temporaryContainer =
+                document.createElement("div");
+
+            temporaryContainer.innerHTML =
+                text;
+
+            const logoBar =
+                temporaryContainer.querySelector(
+                    "#logo-bar"
+                );
+
+            if (logoBar) {
+                document.body.insertBefore(
+                    logoBar,
+                    document.body.firstChild
+                );
+            }
+
+            const nav =
+                temporaryContainer.querySelector(
+                    "#shared-nav"
+                );
+
+            if (nav) {
+                const navPlaceholder =
+                    document.getElementById(
+                        "nav-placeholder"
+                    );
+
+                navPlaceholder.replaceWith(
+                    nav
+                );
+            }
+
+            const footer =
+                temporaryContainer.querySelector(
+                    "#shared-footer"
+                );
+
+            if (footer) {
+                const footerPlaceholder =
+                    document.getElementById(
+                        "footer-placeholder"
+                    );
+
+                footerPlaceholder.replaceWith(
+                    footer
+                );
+            }
+
+        } catch (error) {
+            console.error(
+                "Error cargando componentes:",
+                error
+            );
+
+            document.getElementById(
+                "nav-placeholder"
+            ).innerHTML = `
+                <nav style="padding:1rem;background:#2c3e50;color:white;">
+                    <a
+                        href="/"
+                        style="color:white;text-decoration:none;font-weight:bold;"
+                    >
+                        Inicio
+                    </a>
+                </nav>
+            `;
+
+            document.getElementById(
+                "footer-placeholder"
+            ).innerHTML = `
+                <footer
+                    style="text-align:center;padding:2rem;background:#f5f5f5;"
+                >
+                    <p>
+                        AndesAware · VLIR-SI Ecuador
+                    </p>
+                </footer>
+            `;
+        }
+    }
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
             loadComponents();
-            
-            // Load current weather data
-            load();
-            setInterval(load, REFRESH_MS);
-            
-            // Initialize the map
+
+
+
             initMap();
-            
-            // Load historical CSV data from GitHub
+
             loadCSVData();
-
-        });
-    </script>
-
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+            loadTemperatureForecast();
+            loadRainForecast();
+        }
+    );
+</script>
 
 </body>
 </html>

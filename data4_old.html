@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Station 004</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root { 
+            font-family: system-ui, sans-serif; 
+            line-height: 1.35; 
+        }
+        
+        body { 
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        
+        /* Navigation placeholder */
+        #nav-placeholder {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem;
+        }
+        
+        /* Hero banner */
+        .image-banner {
+            position: relative;
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .text-overlay {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        /* Main content */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* Weather data styles */
+        .grid { 
+            display: grid; 
+            grid-template-columns: 14rem 1fr; 
+            gap: .35rem .75rem; 
+            margin: 1.5rem 0;
+        }
+        
+        .k { color: #444; }
+        .v { font-variant-numeric: tabular-nums; }
+        .muted { color:#666; font-size:.9rem; margin-top:.75rem }
+        .ok { color:#2c7; } 
+        .err{ color:#c33; }
+        
+        /* Map section styles */
+        .map-section {
+            margin-top: 2rem;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1.5rem;
+        }
+        
+        .map-section h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        #station-map {
+            height: 300px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .coordinates {
+            text-align: center;
+            font-family: monospace;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        /* Historical data table styles */
+        .historical-section {
+            margin-top: 2.5rem;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 1.5rem;
+        }
+        
+        .historical-section h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+        }
+        
+        thead {
+            background-color: #4b6cb7;
+            color: white;
+        }
+        
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e1e1e1;
+            white-space: nowrap;
+        }
+        
+        tbody tr:hover {
+            background-color: #f1f5fd;
+        }
+        
+        .timestamp {
+            min-width: 180px;
+        }
+        
+        /* Footer placeholder */
+        #footer-placeholder {
+            background-color: #f5f5f5;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        @media (max-width: 768px) {
+            main {
+                padding: 1rem;
+            }
+            
+            table {
+                font-size: 0.85rem;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+            }
+            
+            #station-map {
+                height: 250px;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation will be inserted here -->
+    <div id="nav-placeholder"></div>
+    
+    <div class="image-banner hero-small" style="background-image: url('images/background.jpg');">
+        <div class="text-overlay">Weather data</div>
+    </div>
+
+    <!-- Content -->
+    <main>
+        <h1>AW004: Campus Universidad del Azuay</h1>
+        <div id="status" class="muted">loading…</div>
+        <div class="current-card">
+        <div class="current-grid" id="out"></div>
+        </div>
+
+
+        <!-- Station Location Map Section -->
+        <div class="map-section">
+            <h2>Location</h2>
+            <div id="station-map"></div>
+            <div class="coordinates">Coordinates: -2.919444, -79.0</div>
+        </div>
+
+        <div class="station-photo">
+            <img src="images/Pictures/station_aw004.jpg">
+        </div>
+
+        <div class="chart-section">
+
+        <div class="chart-card">
+        <h3 class="chart-title">Temperature (°C)</h3>
+        <div class="chart-wrap">
+            <canvas id="temp-chart"></canvas>
+        </div>
+        <div class="muted" id="temp-chart-info">Loading…</div>
+        </div>
+
+        <div class="chart-card" style="margin-top: 1rem;">
+        <h3 class="chart-title">Humidity (%)</h3>
+        <div class="chart-wrap">
+            <canvas id="hum-chart"></canvas>
+        </div>
+        <div class="muted" id="hum-chart-info">Loading…</div>
+        </div>
+
+        <div class="chart-card" style="margin-top: 1rem;">
+            <h3 class="chart-title">Precipitation last 72 hours</h3>
+            <div class="chart-wrap">
+                <canvas id="rain-chart"></canvas>
+            </div>
+            <div class="muted" id="rain-chart-info">Loading…</div>
+        </div>
+
+        </div>
+
+
+        <!-- Historical Data Section -->
+        <div class="historical-section">
+            <div class="table-container">
+                <table id="weather-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Temp (°C)</th>
+                            <th>Humidity (%)</th>
+                            <th>Dew Point (°C)</th>
+                            <th>Feels Like (°C)</th>
+                            <th>Wind Speed (m/s)</th>
+                            <th>Wind Gust (m/s)</th>
+                            <th>Wind Direction (°)</th>
+                            <th>Absolute Atmospheric Pressure (hPa)</th>
+                            <th>Rain Rate (mm/hr)</th>
+                            <th>Interval precipitation (mm)</th>                            
+                            <th>Solar (W/m²)</th>
+                            <th>UV Index</th>
+                           <!-- <th>Indoor Temp (°C)</th>-->
+                           <!-- <th>Indoor Humidity (%)</th>-->
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="muted" id="table-info">Loading historical data from GitHub...</div>
+        </div>
+    </main>
+    
+    <!-- Footer will be inserted here -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const ENDPOINT = "https://api.andesaware.com/weatherstation/sensor/AW004";
+        const REFRESH_MS = 300000;
+
+        // Use the correct raw GitHub URL format
+        const CSV_URL = "https://raw.githubusercontent.com/paulmunozpauta/VLIR_SI_EC_2025-2027/main/datasets/AW004.csv";
+
+        // Station coordinates
+        const STATION_COORDS = [-2.919444, -79.0];
+
+
+
+        // CORRECTED CONVERSION FUNCTIONS
+        function cToF(c){ return (c * 9/5) + 32; }  // Fixed: Celsius to Fahrenheit
+        function kmhToMph(km){ return km * 0.621371; }
+        function hpaToInHg(h){ return h * 0.02953; }
+        function mmToIn(mm){ return mm * 0.0393701; }
+
+        function row(k, v){
+  return `
+    <div class="current-item">
+      <div class="k">${k}</div>
+      <div class="v">${v}</div>
+    </div>
+  `;
+}
+
+        async function load(){
+            const status = document.getElementById('status');
+            try {
+                const res = await fetch(ENDPOINT, { cache: 'no-store' });
+                if (!res.ok) throw new Error(`http ${res.status}`);
+                const data = await res.json();
+                const ecowitt = data.ecowitt_api || {};
+                
+                // Extract values from Ecowitt API structure
+                const outdoor = ecowitt.outdoor || {};
+                const wind = ecowitt.wind || {};
+                const pressure = ecowitt.pressure || {};
+                const rainfall = ecowitt.rainfall || {};
+                const solar_uvi = ecowitt.solar_and_uvi || {};
+
+                // Get values with fallbacks - VALUES ARE IN CELSIUS FROM JSON
+                const tempC = outdoor.temperature?.value;
+                const humid = outdoor.humidity?.value;
+                const dewC = outdoor.dew_point?.value;
+                const windMs = wind.wind_speed?.value;
+                const gustMs = wind.wind_gust?.value;
+                const wdir = wind.wind_direction?.value;
+                const pressHpa = pressure.absolute?.value ?? '—';
+                const yearlyRainMm = rainfall.yearly?.value ?? '—';
+                const rainMm = rainfall.rain_rate?.value;
+                const solar = solar_uvi.solar?.value;
+                const uv = solar_uvi.uvi?.value;
+
+                // FIXED DISPLAY LOGIC - Show Celsius first, then Fahrenheit conversion
+                const rows = [
+                    row('temperature', `${tempC ?? '—'} °C`),
+                    row('feels like', `${outdoor.feels_like?.value ?? '—'} °C`),
+                    row('humidity', `${humid ?? '—'} %`),
+                    row('wind', `${windMs ?? '—'} m/s dir ${wdir ?? '—'}°`),
+                    row('gust', `${gustMs ?? '—'} m/s`),
+                    row('rain rate', `${rainMm ?? '—'} mm/hr`),
+                    row('uv index', uv ?? '—'),
+                    row('absolute pressure', `${pressHpa} hPa`)
+                    /* row('last update', data.received_at ? new Date(data.received_at).toLocaleString() : '—'),
+                */
+                ];
+
+                // Add indoor data if available
+                /*
+                if (ecowitt.indoor) {
+                    const indoorTempC = ecowitt.indoor.temperature?.value;
+                    rows.splice(3, 0, row('indoor temp', `${indoorTempC ?? '—'} °C (${indoorTempC ? cToF(parseFloat(indoorTempC)).toFixed(1) : '—'} °F)`));
+                    rows.splice(4, 0, row('indoor humidity', `${ecowitt.indoor.humidity?.value ?? '—'} %`));
+                }
+                */
+                document.getElementById('out').innerHTML = rows.join('');
+                status.textContent = `updated ${new Date().toLocaleTimeString()} • refresh ${REFRESH_MS/1000}s`;
+                status.className = "muted ok";
+            } catch (e) {
+                document.getElementById('status').textContent = `failed to load (${e.message}). retrying…`;
+                document.getElementById('status').className = "muted err";
+            }
+        }
+
+        // ADD MISSING CONVERSION FUNCTIONS
+        function inHgToHpa(i){ return i * 33.8638866667; }
+        function mphToKmh(m){ return m * 1.60934; }
+
+        // Initialize the map
+        function initMap() {
+            const map = L.map('station-map').setView(STATION_COORDS, 15);
+            
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add a marker for the weather station
+            const stationMarker = L.marker(STATION_COORDS).addTo(map)
+                .bindPopup('AW004')
+                .openPopup();
+            
+            // Add a circle to highlight the location
+            L.circle(STATION_COORDS, {
+                color: '#4b6cb7',
+                fillColor: '#4b6cb7',
+                fillOpacity: 0.1,
+                radius: 100
+            }).addTo(map);
+        }
+
+        // FIXED CSV PARSING - Add headers if not present
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim());
+            
+            // Define headers based on your CSV structure
+            const headers = [
+    'timestamp',
+    'temperature_c',
+    'humidity_pct',
+    'dew_point_c',
+    'feels_like_c',
+    'wind_speed_ms',
+    'wind_gust_ms',
+    'wind_direction_deg',
+    'absolute_pressure_hpa',
+    'rain_rate_mmhr',
+    'yearly_rain_mm',
+    'solar_wm2',
+    'uv_index',
+    'indoor_temp_c',
+    'indoor_humidity_pct'
+];
+            
+            const data = [];
+            
+            // Check if first line contains headers or data
+            const firstLine = lines[0].split(',');
+            const hasHeaders = isNaN(parseFloat(firstLine[1])); // Check if second column is numeric
+            
+            let startIndex = 0;
+            if (hasHeaders) {
+                // Use existing headers if present
+                startIndex = 1;
+            }
+            
+            for (let i = startIndex; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                const values = lines[i].split(',').map(v => v.trim());
+                const row = {};
+                
+                headers.forEach((header, index) => {
+                    if (index < values.length) {
+                        let value = values[index];
+                        
+                        // Convert numeric values
+                        if (header !== 'timestamp' && value && !isNaN(value) && value.trim() !== '') {
+                            value = parseFloat(value);
+                        }
+                        
+                        if (header === 'timestamp') {
+                        // remove BOM, remove surrounding quotes, trim spaces
+                        value = value.replace(/^\uFEFF/, '').replace(/^"|"$/g, '').trim();
+                        }
+                        row[header] = value;
+
+
+                    } else {
+                        row[header] = '';
+                    }
+                });
+                
+                data.push(row);
+            }
+            
+            return data;
+        }
+
+        // Format timestamp for display
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return 'Invalid Date';
+            try {
+                const date = new Date(timestamp);
+                return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
+            } catch (e) {
+                return 'Invalid Date';
+            }
+        }
+
+        // FIXED TABLE POPULATION - Use the correct column names
+        
+        function addIntervalRain(data) {
+        const sorted = [...(data || [])].sort((a, b) =>
+            new Date(a.timestamp) - new Date(b.timestamp)
+        );
+
+        let previous = null;
+
+        for (const row of sorted) {
+            const current = toNumberOrNull(row.yearly_rain_mm);
+
+            if (current === null || previous === null) {
+                row.interval_rain_mm = 0;
+                previous = current;
+                continue;
+            }
+
+            const diff = current - previous;
+
+            if (diff >= 0) {
+                row.interval_rain_mm = diff;
+            } else {
+                // yearly counter reset:
+                // current cumulative value is rainfall since reset
+                row.interval_rain_mm = current;
+            }
+
+            previous = current;
+        }
+
+        return sorted;
+    }           
+        // FIXED TABLE POPULATION - Use the correct column names
+        function populateTable(data) {
+            const tableBody = document.getElementById('table-body');
+            const tableInfo = document.getElementById('table-info');
+            
+            tableBody.innerHTML = '';
+            
+            if (!data || data.length === 0) {
+                tableInfo.textContent = 'No historical data available';
+                return;
+            }
+            
+            // Show only last 60 records (most recent first)                 <td>${row.indoor_temp_c !== undefined ? row.indoor_temp_c : '—'}</td> <td>${row.indoor_humidity_pct !== undefined ? row.indoor_humidity_pct : '—'}</td>
+ 
+            const displayData = data.slice(-60).reverse();
+            
+            displayData.forEach(row => {
+                const tr = document.createElement('tr');
+                
+                tr.innerHTML = `
+                    <td class="timestamp">${formatTimestamp(row.timestamp)}</td>
+                    <td>${row.temperature_c !== undefined ? row.temperature_c : '—'}</td>
+                    <td>${row.humidity_pct !== undefined ? row.humidity_pct : '—'}</td>
+                    <td>${row.dew_point_c !== undefined ? row.dew_point_c : '—'}</td>
+                    <td>${row.feels_like_c !== undefined ? row.feels_like_c : '—'}</td>
+                    <td>${row.wind_speed_ms !== undefined ? row.wind_speed_ms : '—'}</td>
+                    <td>${row.wind_gust_ms !== undefined ? row.wind_gust_ms : '—'}</td>
+                    <td>${row.wind_direction_deg !== undefined ? row.wind_direction_deg : '—'}</td>
+                    <td>${row.absolute_pressure_hpa !== undefined ? row.absolute_pressure_hpa : '—'}</td>
+                    <td>${row.rain_rate_mmhr !== undefined ? row.rain_rate_mmhr : '—'}</td>
+                    <td>${row.interval_rain_mm !== undefined ? row.interval_rain_mm.toFixed(1) : '—'}</td>
+                    <td>${row.solar_wm2 !== undefined ? row.solar_wm2 : '—'}</td>
+                    <td>${row.uv_index !== undefined ? row.uv_index : '—'}</td>                `;
+                
+                tableBody.appendChild(tr);
+            });
+            
+            tableInfo.textContent = `✓ Showing last ${displayData.length} records`;
+        }
+
+let tempChart = null;
+let humChart = null;
+let rainChart = null;
+
+function makeLineChart(canvasId, yTitle, labelText) {
+    const canvas = document.getElementById(canvasId);
+
+    return new Chart(canvas, {
+        type: "line",
+        data: {
+            datasets: [{
+                label: labelText,
+                data: [],
+                tension: 0.25,
+                pointRadius: 0,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    type: "time",
+                    time: {
+                        unit: "hour",
+                        tooltipFormat: "PP HH:mm"
+                    },
+                    ticks: {
+                        autoSkip: true,
+                        maxRotation: 0,
+                        callback: function(value, index, ticks) {
+                            const d = new Date(value);
+
+                            if (index === 0) {
+                                return d.toLocaleString([], {
+                                    month: "short",
+                                    day: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                });
+                            }
+
+                            const prev = new Date(ticks[index - 1].value);
+                            const dayChanged =
+                                d.getFullYear() !== prev.getFullYear() ||
+                                d.getMonth() !== prev.getMonth() ||
+                                d.getDate() !== prev.getDate();
+
+                            if (dayChanged) {
+                                return d.toLocaleString([], {
+                                    month: "short",
+                                    day: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                });
+                            }
+
+                            return d.toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            });
+                        }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: yTitle }
+                }
+            }
+        }
+    });
+}
+
+function updateChart(chart, x, y) {
+    chart.data.datasets[0].data = x.map((xi, i) => ({ x: xi, y: y[i] }));
+    chart.update("none");
+}
+
+function toNumberOrNull(v) {
+    const n = (typeof v === "number") ? v : parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+}
+
+function buildSeries(data) {
+    const sorted = [...(data || [])].sort((a, b) =>
+        new Date(a.timestamp) - new Date(b.timestamp)
+    );
+
+    const x = [];
+    const temp = [];
+    const hum = [];
+    const rain = [];
+
+    for (const r of sorted) {
+        const d = new Date(r.timestamp);
+        if (!Number.isFinite(d.getTime())) continue;
+
+        x.push(d.getTime());
+        temp.push(toNumberOrNull(r.temperature_c));
+        hum.push(toNumberOrNull(r.humidity_pct));
+
+        // yearly cumulative rain from GitHub CSV
+        rain.push(toNumberOrNull(r.yearly_rain_mm));
+    }
+
+    // Convert yearly cumulative rainfall to interval rainfall
+    const rainInterval = [];
+
+    for (let i = 0; i < rain.length; i++) {
+
+        if (i === 0 || rain[i] === null || rain[i - 1] === null) {
+            rainInterval.push(0);
+            continue;
+        }
+
+        const diff = rain[i] - rain[i - 1];
+
+        if (diff >= 0) {
+            rainInterval.push(diff);
+        } else {
+            // yearly counter reset: current value is rainfall since reset
+            rainInterval.push(rain[i]);
+        }
+    }
+
+    return { x, temp, hum, rain: rainInterval };
+}
+
+function filterSeriesLastHours(x, y, hours) {
+    const now = Date.now();
+    const cutoff = now - hours * 60 * 60 * 1000;
+
+    const xf = [];
+    const yf = [];
+
+    for (let i = 0; i < x.length; i++) {
+        if (x[i] >= cutoff) {
+            xf.push(x[i]);
+            yf.push(y[i]);
+        }
+    }
+
+    return { x: xf, y: yf };
+}
+
+function renderHistoricalCharts(data) {
+    const { x, temp, hum, rain } = buildSeries(data);
+
+    if (!x.length) {
+        document.getElementById("temp-chart-info").textContent = "No valid timestamps to plot.";
+        document.getElementById("hum-chart-info").textContent = "No valid timestamps to plot.";
+        document.getElementById("rain-chart-info").textContent = "No valid timestamps to plot.";
+        return;
+    }
+
+    if (!tempChart) tempChart = makeLineChart("temp-chart", "°C", "Temperature (°C)");
+    if (!humChart) humChart = makeLineChart("hum-chart", "%", "Humidity (%)");
+    if (!rainChart) rainChart = makeLineChart("rain-chart", "mm", "Interval rainfall (mm)");
+
+    updateChart(tempChart, x, temp);
+    updateChart(humChart, x, hum);
+
+    const rain72 = filterSeriesLastHours(x, rain, 72);
+    updateChart(rainChart, rain72.x, rain72.y);
+
+    document.getElementById("temp-chart-info").textContent = `✓ Plotting ${x.length} records`;
+    document.getElementById("hum-chart-info").textContent = `✓ Plotting ${x.length} records`;
+    document.getElementById("rain-chart-info").textContent = `✓ Plotting last ${rain72.x.length} records from the last 72 hours`;
+}
+
+
+        function filterLastHours(data, hours = 10) {
+            const now = Date.now();
+            const cutoff = now - hours * 60 * 60 * 1000;
+
+            return (data || []).filter(r => {
+                const t = new Date(r.timestamp).getTime();
+                return Number.isFinite(t) && t >= cutoff;
+            });
+        }
+
+
+        // Fetch CSV data from GitHub
+        async function loadCSVData() {
+            try {
+                const tableInfo = document.getElementById('table-info');
+                tableInfo.textContent = 'Fetching data from GitHub...';
+                
+                const response = await fetch(CSV_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const csvText = await response.text();
+                console.log('Raw CSV data:', csvText); // Debug log
+                
+                
+                
+                let csvData = parseCSV(csvText);
+                csvData = addIntervalRain(csvData);
+                console.log('Parsed CSV data:', csvData);
+                
+                // keep only last 100 hours for charts
+                renderHistoricalCharts(csvData);
+
+                // keep only last 10 hours for table
+                const last10h = filterLastHours(csvData, 10);
+                populateTable(last10h);
+
+
+            } catch (error) {
+                console.error('Error loading CSV:', error);
+                document.getElementById('table-info').textContent = `Error loading data: ${error.message}`;
+                document.getElementById('table-info').className = "muted err";
+            }
+        }
+
+        // Components auto-loaded
+        async function loadComponents() {
+            try {
+                const res = await fetch('components.html');
+                const text = await res.text();
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = text;
+
+                const logoBar = tempDiv.querySelector('#logo-bar');
+                if (logoBar) {
+                    document.body.insertBefore(logoBar, document.body.firstChild);
+                }
+
+                const nav = tempDiv.querySelector('#shared-nav');
+                if (nav) {
+                    const navPlaceholder = document.getElementById('nav-placeholder');
+                    navPlaceholder.parentNode.replaceChild(nav, navPlaceholder);
+                }
+
+                const footer = tempDiv.querySelector('#shared-footer');
+                if (footer) {
+                    const footerPlaceholder = document.getElementById('footer-placeholder');
+                    footerPlaceholder.parentNode.replaceChild(footer, footerPlaceholder);
+                }
+            } catch (error) {
+                console.error('Error loading components:', error);
+                // Fallback navigation if components.html is not available
+                document.getElementById('nav-placeholder').innerHTML = `
+                    <nav style="padding: 1rem; background: #2c3e50; color: white;">
+                        <a href="/" style="color: white; text-decoration: none; font-weight: bold;">Home</a> | 
+                        <a href="/weather.html" style="color: white; text-decoration: none;">Weather Station</a>
+                    </nav>
+                `;
+                
+                document.getElementById('footer-placeholder').innerHTML = `
+                    <footer style="text-align: center; padding: 2rem; background: #f5f5f5;">
+                        <p>Weather Station Data - Universidad de Concepción (campus Chillán), Chile</p>
+                    </footer>
+                `;
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load navigation and footer components
+            loadComponents();
+            
+            // Load current weather data
+            load();
+            setInterval(load, REFRESH_MS);
+            
+            // Initialize the map
+            initMap();
+            
+            // Load historical CSV data from GitHub
+            loadCSVData();
+
+        });
+    </script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+
+</body>
+</html>

@@ -1,3 +1,4 @@
 timestamp,temperature_c,humidity_pct,dew_point_c,feels_like_c,wind_speed_ms,wind_gust_ms,wind_direction_deg,absolute_pressure_hpa,rain_rate_mmhr,yearly_rain_mm,solar_wm2,uv_index,indoor_temp_c,indoor_humidity_pct
 2026-09-08T19:45:00.000Z,21.6,44,8.8,21.6,9.4,16.6,90,22.08,0.0,504.2,636.3,6,27.8,32
 2026-09-08T20:00:00.000Z,20.8,45,8.4,20.8,14.0,25.6,78,22.08,0.0,504.2,353.9,3,28.3,31
+2026-09-08T20:15:00.000Z,20.6,47,8.9,20.6,23.0,25.6,86,22.08,0.0,504.2,188.2,1,28.7,30
